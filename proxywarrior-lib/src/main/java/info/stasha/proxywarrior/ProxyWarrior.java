@@ -98,6 +98,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        
         this.filterConfig = filterConfig;
 
 //        try {
@@ -337,6 +338,8 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         HttpServletRequest htReq = (HttpServletRequest) request;
         HttpServletResponse htResp = (HttpServletResponse) response;
+        
+        System.out.println("config: " + config);
 
         Metadata metadata = config.getMetadata(htReq, htResp);
         if (metadata == null) {
