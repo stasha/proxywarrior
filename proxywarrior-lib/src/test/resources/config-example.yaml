@@ -1,0 +1,133 @@
+# ProxyWarrior configuration 1.0
+# Configuration contains two parts.
+# 1. global configuration part = global/common settings for all requests/responses
+# 2. request specific configuration part = request specific settings
+#       Request specific settings override global configuration settings.
+#
+# Request is matched in next order:
+# 1. search for specific request registered in global config
+# 2. use global config to build request
+#
+# Response is matched in next order:
+# 1. search for response in request that was matched
+# 2. search in global config for specific response
+# 3. if no response was found, then original response as returned from
+#       proxy request is returned
+#
+# All settings are queried in next order:
+# 1. settings in matched request/response
+# 2. global configuration
+
+config:
+    # request url to proxy (regex)
+    # example:
+    #       url:            "http://www.mydomain.com/users?firstName=fn&lastName=ln"
+    #       url:            "http.*?/users"
+    #       url:            "*"
+    url: "*" # default: "*" = proxy all requests
+
+    # proxy request to target uri
+    # only host will be replaced in url, rest of the url will be appended to target host
+    # example:
+    #       url:            http://www.mydomain.com/users?firstName=fn&lastName=ln
+    #       target-uri:     http://www.targetdomain.com/proxy
+    #       proxy to:       http://www.targetdomain.com/prox/users?firstName=fn&lastName=ln
+    target-uri: "http://www.targetdomain.com/proxy"
+
+    # proxy request to target url
+    # url will be replaced by target url
+    # example:
+    #       url:            http://www.mydomain.com/users?firstName=fn&lastName=ln
+    #       target-url:     http://www.targetdomain.com/proxy
+    #       proxy to:       http://www.targetdomain.com/proxy
+    # example:
+    #       url:            http://www.mydomain.com/(users?firstName=fn)&lastName=ln
+    #       target-url      http://www.targetdomain.com/proxy/$1
+    #       proxy to:       http://www.targetdomain.com/proxy/users?firstName=fn
+    target-url: "http://www.targetdomain.com/proxy/users/?firstName=fn&lastName=ln"
+
+    # -if set to true, request will be automatically proxied to targetUri or targetUrl
+    # -if set to false, request won't be automatically proxied
+    # -setting it to false allows request to fall into the servlet/controller where it
+    # can be additionally modified and then manually sent
+    # proxy Request can be accessed from HttpServletRequest.getAttribute("proxy")
+    auto-proxy: true # default: true
+
+    # global model used for dynamic value configuration
+    # it must implement ProxyWarriorModel
+    # example:
+    #       model: "com.myproject.global.ProxyValues"
+    #       url: "${url}" - ${url} property will be replaced by value that's specified in "com.myproject.globa.ProxyValues"
+    #       ${authorization}: - authorization: "Bearer xyz"
+    #       authorization header will be sent only if it exists in "com.myproject.globa.ProxyValues"
+    model: "com.myproject.global.ProxyValues"
+
+    # enables/disables logging
+    log:
+        headers: true
+        mask-headers:
+            - authorization: "****"
+        request:
+            url: true
+            proxy-url: true
+            matched-url: true
+        response:
+            matched-url: true
+
+
+    # custom user logging
+    # it must implement ProxyWarriorLogger
+    logger: "com.myproject.global.ProxyLogger"
+
+    # forwards ip address
+    forward-ip: true
+
+    # remove headers that match regex "*" = remove all headers
+    remove-headers: "^x-"
+
+    # headers that will be sent with proxy request
+    headers:
+        # adds or replaces existing header
+        origin: "http://www.origindomain.com"
+
+        # header prefixed with "=" will be preserved as is
+        # if it does not exist it won't be added
+        =host:
+
+        # header prefixed with "+" will be added to headers only if it does not exist
+        +content-type: "application-json"
+
+        # header prefixed with "~" will be removed from existing headers
+        ~referer:
+
+    # response handlers
+    # response inherits only some global settings (model, log, log-headers, headers)
+    -   response:
+        # return this response based on matched url
+        # regex, "*" return this response for every request
+        url: "*"
+
+        # hardcoded text that will be returned as response content
+        text: "my content text"
+        # file whose content will be returned as response content
+        file: "/home/username/Documents/replace.js"
+        # replace text in content
+        replace:
+                # regex pattern that will be used for matching
+            -   pattern: "mytext"
+                # value used for responsing matched content
+                value: "my text"
+
+    # request inherits all global settings including response list
+    # all global setting can be overwritten in request
+    -   request:
+
+        # specific request setting for this url
+        url: "http://www.mydomain.com/main.js"
+        -   response:
+                file: "/home/username/Documents/main-debug.js"
+
+        # request attributes
+        attributes:
+            -   attribute1: "my attribute1"
+                attribute2: "my attribute2"
