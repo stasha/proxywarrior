@@ -8,7 +8,6 @@ import info.stasha.proxywarrior.config.RequestConfig;
 import info.stasha.proxywarrior.config.HttpClientConfig;
 import info.stasha.proxywarrior.config.loader.ConfigLoader;
 import info.stasha.proxywarrior.config.ResponseConfig;
-import info.stasha.proxywarrior.logging.db.Configuration;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -77,13 +76,13 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         Base.open(hikariDs);
 
-        List<Configuration> c = Configuration.findAll();
+//        List<Configuration> c = Configuration.findAll();
 
-        try {
-            System.out.println(IOUtils.toString(((JDBCClobClient) c.get(0).get("configuration")).getCharacterStream()));
-        } catch (IOException ex) {
-            Logger.getLogger(ProxyWarrior.class.getName()).log(Level.SEVERE, null, ex);
-        }
+//        try {
+//            System.out.println(IOUtils.toString(((JDBCClobClient) c.get(0).get("configuration")).getCharacterStream()));
+//        } catch (IOException ex) {
+//            Logger.getLogger(ProxyWarrior.class.getName()).log(Level.SEVERE, null, ex);
+//        }
 
         Base.exec("insert into CONFIGURATIONS (CONFIGURATION) values ('stasha')");
         Base.find("select * from CONFIGURATIONS").with(new RowListener() {
