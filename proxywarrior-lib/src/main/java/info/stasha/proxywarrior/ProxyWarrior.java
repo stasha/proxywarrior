@@ -12,14 +12,13 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,9 +38,10 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.util.EntityUtils;
 import org.flywaydb.core.Flyway;
-import org.hsqldb.jdbc.JDBCClobClient;
 import org.javalite.activejdbc.Base;
 import org.javalite.activejdbc.RowListener;
 import org.mitre.dsmiley.httpproxy.ProxyServlet;
@@ -77,13 +77,11 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         Base.open(hikariDs);
 
 //        List<Configuration> c = Configuration.findAll();
-
 //        try {
 //            System.out.println(IOUtils.toString(((JDBCClobClient) c.get(0).get("configuration")).getCharacterStream()));
 //        } catch (IOException ex) {
 //            Logger.getLogger(ProxyWarrior.class.getName()).log(Level.SEVERE, null, ex);
 //        }
-
         Base.exec("insert into CONFIGURATIONS (CONFIGURATION) values ('stasha')");
         Base.find("select * from CONFIGURATIONS").with(new RowListener() {
             @Override
@@ -98,7 +96,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        
+
         this.filterConfig = filterConfig;
 
 //        try {
@@ -247,12 +245,12 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         RequestConfig requestConfig = metadata.getRequestConfig();
         overrideHeaders(proxyRequest, (CommonConfig) requestConfig);
-        requestConfig.getLoggingLogger().log(ProxyAction.PROXY_REQUEST_BEGIN, metadata);
+        requestConfig.getListeners().fire(ProxyAction.BEFORE_PROXY_REQUEST, metadata);
 
         BasicHttpResponseWrapper proxyResponse = new BasicHttpResponseWrapper(super.doExecute(servletRequest, servletResponse, proxyRequest));
 
         metadata.setProxyResponse(proxyResponse);
-        requestConfig.getLoggingLogger().log(ProxyAction.PROXY_REQUEST_END, metadata);
+        requestConfig.getListeners().fire(ProxyAction.AFTER_PROXY_RESPONSE, metadata);
 
         return proxyResponse;
     }
@@ -265,6 +263,15 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     ) throws IOException {
     }
 
+    private long getContentLength(HttpMessage reqresp) {
+        Header contentLength = reqresp.getFirstHeader("Content-Length");
+        
+        if (contentLength != null) {
+            return Long.parseLong(contentLength.getValue());
+        }
+        return -1L;
+    }
+
     @Override
     protected void service(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
         super.service(servletRequest, servletResponse);
@@ -274,6 +281,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         ResponseConfig responseConfig = metadata.getResponseConfig();
         BasicHttpResponseWrapper proxyResponse = (BasicHttpResponseWrapper) metadata.getProxyResponse();
         HttpEntity entity = null;
+
+        InputStream content = null;
+
         try {
 
             entity = proxyResponse.getOriginalEntity();
@@ -283,7 +293,6 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 String file = metadata.getResponseConfig().getFile();
 
                 if (text != null) {
-                    ByteArrayInputStream bas = new ByteArrayInputStream(text.getBytes());
                     overrideHeaders(proxyResponse, (CommonConfig) responseConfig);
 
                     proxyResponse.setHeader("Content-Length", String.valueOf(text.getBytes().length));
@@ -291,7 +300,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
                     copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 
-                    IOUtils.copy(bas, servletResponse.getOutputStream());
+                    content = new ByteArrayInputStream(text.getBytes());
                 } else if (file != null) {
                     File f = new File(file);
 
@@ -316,9 +325,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
                     copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 
-                    IOUtils.copy(new FileInputStream(f), servletResponse.getOutputStream());
+                    content = new FileInputStream(f);
                 } else {
-                    IOUtils.copy(entity.getContent(), servletResponse.getOutputStream());
+                    content = entity.getContent();
                 }
 
             } else {
@@ -326,11 +335,22 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
             }
 
+            if (entity != null && content != null) {
+                proxyResponse.setEntity(new InputStreamEntity(content, getContentLength(proxyResponse)));
+            }
+
+            metadata.getRequestConfig().getListeners().fire(ProxyAction.BEFORE_HTTP_RESPONSE, metadata);
+
+            if (content != null) {
+                IOUtils.copy(content, servletResponse.getOutputStream());
+            }
+
         } finally {
             if (entity != null) {
                 EntityUtils.consumeQuietly(entity);
             }
         }
+
     }
 
     @Override
@@ -338,7 +358,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         HttpServletRequest htReq = (HttpServletRequest) request;
         HttpServletResponse htResp = (HttpServletResponse) response;
-        
+
         System.out.println("config: " + config);
 
         Metadata metadata = config.getMetadata(htReq, htResp);
@@ -364,9 +384,10 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         if (isSameRequest || isAutoProxy == false) {
             request.setAttribute("proxy", metadata);
+            req.getListeners().fire(ProxyAction.AFTER_NOT_PROXY_REQUEST, metadata);
             chain.doFilter(request, response);
         } else {
-            req.getLoggingLogger().log(ProxyAction.REQUEST_BEGIN, metadata);
+            req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 
             getHttpClient(metadata);
 

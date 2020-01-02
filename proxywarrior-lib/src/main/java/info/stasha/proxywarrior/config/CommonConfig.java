@@ -2,12 +2,10 @@ package info.stasha.proxywarrior.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import info.stasha.proxywarrior.config.logging.LogConfig;
+import info.stasha.proxywarrior.listeners.Listeners;
 import info.stasha.proxywarrior.logging.LoggerWarrior;
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Common configuration inherited by RequestConfig and ResponseConfig.
@@ -37,8 +35,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private Pattern removeHeadersPattern;
     private Map<String, String> headers;
 
-    private String logger;
-    private LoggerWarrior proxyWarriorLogger;
+    private Listeners listeners;
 
     private String model;
     @JsonIgnore
@@ -300,33 +297,21 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Returns logger instance used for logging request/response.
+     * Returns Set of listeners that will be invoked on different proxy actions.
      *
      * @return
      */
-    @JsonIgnore
-    public LoggerWarrior getLoggingLogger() {
-        return proxyWarriorLogger == null ? (proxyWarriorLogger = Utils.newObject(getLogger())) : proxyWarriorLogger;
+    public Listeners getListeners() {
+        return Utils.getValue(listeners, this, getParent(), () -> getParent().getListeners(), null);
     }
 
     /**
-     * Returns fully qualified class name that will be used for creating logger.
+     * Sets listeners that will be invoked on different proxy actions.
      *
-     * @see #getLoggingLogger()
-     * @return
+     * @param listeners
      */
-    public String getLogger() {
-        return Utils.getValue(logger, this, getParent(), () -> getParent().getLogger(), null);
-    }
-
-    /**
-     * Sets fully qualified class name that will be used for creating logger.
-     *
-     * @param logger
-     */
-    public void setLogger(String logger) {
-        this.logger = logger;
-        proxyWarriorLogger = null;
+    public void setListeners(Listeners listeners) {
+        this.listeners = listeners;
     }
 
     /**

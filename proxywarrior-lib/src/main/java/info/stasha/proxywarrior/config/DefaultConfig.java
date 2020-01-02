@@ -3,7 +3,7 @@ package info.stasha.proxywarrior.config;
 import info.stasha.proxywarrior.config.logging.LogConfig;
 import info.stasha.proxywarrior.config.logging.LogRequest;
 import info.stasha.proxywarrior.config.logging.LogResponse;
-import info.stasha.proxywarrior.logging.loggers.ConsoleLogger;
+import info.stasha.proxywarrior.listeners.Listeners;
 
 /**
  * Default ProxyWarrior configuration.
@@ -31,10 +31,13 @@ public class DefaultConfig extends RequestConfig {
         cc.setReadTimeout(-1);
         cc.setUseSystemProperties(true);
 
+        Listeners listeners = new Listeners();
+        listeners.add("info.stasha.proxywarrior.listeners.LogToDbListener");
+
         super.setUrl("*");
         super.setAutoProxy(true);
         super.setLog(log);
-        super.setLogger(ConsoleLogger.class.getName());
+        super.setListeners(listeners);
         super.setClientConfig(cc);
     }
 

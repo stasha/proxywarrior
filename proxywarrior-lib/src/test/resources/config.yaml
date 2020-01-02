@@ -23,6 +23,9 @@ headers:
   add-if-not-present: add-if-not-present-original
   keep-eisting: keep-existing-original
   delete-existing: deleteheader
+  
+listeners:
+  - info.stasha.proxywarrior.listeners.LogToDbListener
 
 requests:
     #------------------------------------------------------
