@@ -30,9 +30,9 @@ headers:
   origin: https://www.testorigin.com
   xtra: _[xtra]_
   _[attrkey]_: _[attrval]_
-  add-if-not-present: add-if-not-present-original
-  keep-eisting: keep-existing-original
-  delete-existing: deleteheader
+  +add-if-not-present: add-if-not-present-original
+  =keep-eisting: keep-existing-original
+  ~delete-existing: deleteheader
 
 requests:
     #------------------------------------------------------
