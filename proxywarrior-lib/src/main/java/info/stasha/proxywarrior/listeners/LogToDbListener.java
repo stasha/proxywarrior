@@ -1,5 +1,6 @@
 package info.stasha.proxywarrior.listeners;
 
+import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.config.Metadata;
 
 /**
@@ -8,6 +9,16 @@ import info.stasha.proxywarrior.config.Metadata;
  * @author stasha
  */
 public class LogToDbListener implements ProxyWarriorListener {
+
+    @Override
+    public void init(ProxyWarrior proxyWarrior) {
+        System.out.println("initialized");
+    }
+
+    @Override
+    public void destroy(ProxyWarrior proxyWarrior) {
+        System.out.println("destroyed");
+    }
 
     @Override
     public void afterHttpRequest(Metadata metadata) {
@@ -32,6 +43,17 @@ public class LogToDbListener implements ProxyWarriorListener {
     @Override
     public void beforeHttpResponse(Metadata metadata) {
         System.out.println("before http response");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return LogToDbListener.class.getName().equals(obj.getClass().getName());
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        return hash;
     }
 
 }

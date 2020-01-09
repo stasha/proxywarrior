@@ -1,5 +1,6 @@
 package info.stasha.proxywarrior.listeners;
 
+import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.config.Metadata;
 
 /**
@@ -9,6 +10,20 @@ import info.stasha.proxywarrior.config.Metadata;
  * @author stasha
  */
 public interface ProxyWarriorListener {
+
+    /**
+     * Method invoked on ProxyWarrior initialization time.
+     *
+     * @param proxyWarrior
+     */
+    void init(ProxyWarrior proxyWarrior);
+
+    /**
+     * Method invoked when ProxyWarrior instance is destroyed.
+     *
+     * @param proxyWarrior
+     */
+    void destroy(ProxyWarrior proxyWarrior);
 
     /**
      * Invoked after HttpServletRequest occurs. In this stage request data are

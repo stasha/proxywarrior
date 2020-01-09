@@ -1,6 +1,7 @@
 package info.stasha.proxywarrior.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import info.stasha.proxywarrior.listeners.ProxyWarriorListener;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
@@ -12,7 +13,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.servlet.http.HttpServletResponse;
 
@@ -29,13 +32,13 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     public static final String TARGET_URI_REGEX = ".*:\\/\\/.*?[\\w.:-]*";
 
     private static RequestConfig PROXY_WARRIOR_REQUEST_CONFIG;
-
+    
     private List<RequestConfig> requests = new ArrayList<>();
     private List<ResponseConfig> responses = new ArrayList<>();
 
     private HttpClientConfig clientConfig;
 
-    private String id = "default";
+    private String id;
 
     private String targetUri;
     @JsonIgnore
@@ -68,7 +71,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     }
 
     /**
-     * Returns request configuration id.
+     * Returns configuration id.
      *
      * @return
      */

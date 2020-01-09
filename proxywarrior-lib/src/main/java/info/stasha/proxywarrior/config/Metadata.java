@@ -6,6 +6,7 @@ import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
 import org.apache.http.HttpRequest;
 
 /**
@@ -15,6 +16,7 @@ import org.apache.http.HttpRequest;
  */
 public class Metadata {
 
+    private DataSource dataSource;
     private final String id;
     private String fullUrl;
     private String proxyUrl;
@@ -45,6 +47,24 @@ public class Metadata {
      */
     public String getId() {
         return id;
+    }
+
+    /**
+     * Returns dataSource.
+     *
+     * @return
+     */
+    public DataSource getDataSource() {
+        return dataSource;
+    }
+
+    /**
+     * Sets dataSource.
+     *
+     * @param dataSource
+     */
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     /**

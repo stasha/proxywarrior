@@ -1,9 +1,13 @@
 package info.stasha.proxywarrior;
 
+import com.zaxxer.hikari.HikariDataSource;
+import info.stasha.testosterone.DbConfig;
+import info.stasha.testosterone.annotation.Configuration;
+import info.stasha.testosterone.db.HsqlDbConfig;
 import info.stasha.testosterone.jersey.junit4.Testosterone;
 import info.stasha.testosterone.junit4.TestosteroneRunner;
 import info.stasha.testosterone.servlet.Filter;
-import info.stasha.testosterone.servlet.ServletContainerConfig;
+import info.stasha.testosterone.servlet.ServletContainerConfig; 
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,19 +21,28 @@ import org.slf4j.LoggerFactory;
  * @author stasha
  */
 @RunWith(TestosteroneRunner.class)
+@Configuration(runDb = true, dbConfig = HsqlDbConfig.class)
 public abstract class AbstractTest implements Testosterone {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTest.class.getName());
 
-    protected final ProxyWarrior PROXY_FILTER = Mockito.spy(new ProxyWarrior());
+    protected ProxyWarrior PROXY_FILTER;
     protected static boolean failed = false;
     protected static boolean useConfig = true;
 
     @Override
+    public void configure(DbConfig config) {
+        config.add("drop testing schema", "DROP SCHEMA PUBLIC CASCADE");
+    }
+
+    @Override
     public void configure(ServletContainerConfig config) {
+
+        PROXY_FILTER = Mockito.spy(new ProxyWarrior((HikariDataSource) getTestConfig().getDbConfig().getDataSource()));
+
         Filter f = new Filter(PROXY_FILTER, "/*");
         if (useConfig == true) {
-            f.getInitParams().put("PROPS_LOCATION", this.getClass().getResource("/config.yaml").getPath());
+            f.getInitParams().put(ProxyWarrior.FILTER_INIT_CONFIG_LOCATION, this.getClass().getResource("/config.yaml").getPath());
         }
         config.addFilter(f);
 

@@ -1,0 +1,16 @@
+---
+id: default-configuration
+
+url: "*"
+autoProxy: true
+
+clientConfig:
+  connectTimeout: -1
+  connectionRequestTimeout: -1
+  handleRedirects: false
+  maxConnections: -1
+  readTimeout: -1
+  useSystemProperties: true
+  
+listeners:
+  - info.stasha.proxywarrior.listeners.LogToDbListener

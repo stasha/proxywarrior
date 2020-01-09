@@ -8,6 +8,7 @@ import info.stasha.proxywarrior.config.RequestConfig;
 import info.stasha.proxywarrior.config.HttpClientConfig;
 import info.stasha.proxywarrior.config.loader.ConfigLoader;
 import info.stasha.proxywarrior.config.ResponseConfig;
+import info.stasha.proxywarrior.logging.db.ConfigurationEntity;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,7 +19,6 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.Map;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +30,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -38,12 +39,10 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
-import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.util.EntityUtils;
 import org.flywaydb.core.Flyway;
 import org.javalite.activejdbc.Base;
-import org.javalite.activejdbc.RowListener;
 import org.mitre.dsmiley.httpproxy.ProxyServlet;
 
 /**
@@ -51,6 +50,10 @@ import org.mitre.dsmiley.httpproxy.ProxyServlet;
  * @author stasha
  */
 public class ProxyWarrior extends ProxyServlet implements Filter {
+
+    public static final String SYSTEM_CONFIG_LOCATION = "proxywarrior.config.location";
+    public static final String FILTER_INIT_CONFIG_LOCATION = "config_location";
+    public static final String LAST_CONFIG_USED = "LAST_CONFIG_USED";
 
     private static final Logger LOGGER = Logger.getLogger(ProxyWarrior.class.getName());
     private static final ThreadLocal<Metadata> REQUEST_METADATA = new ThreadLocal<>();
@@ -61,37 +64,165 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     private FilterConfig filterConfig;
     private HikariDataSource hikariDs;
 
-    protected void initDb() throws SQLException {
-        File proxywarriorDbDir = Paths.get(System.getProperty("user.home"), ".proxywarrior").toFile();
-        proxywarriorDbDir.mkdirs();
+    /**
+     * Creates new proxy warrior instance.
+     */
+    public ProxyWarrior() {
+    }
 
-        String proxywarriorJdbcConnection = "jdbc:hsqldb:" + proxywarriorDbDir + File.separator + "proxywarrior";
+    /**
+     * Creates new proxy warrior instance.
+     *
+     * @param hikariDs
+     */
+    public ProxyWarrior(HikariDataSource hikariDs) {
+        this.hikariDs = hikariDs;
+    }
 
-        this.hikariDs = new HikariDataSource();
-        this.hikariDs.setJdbcUrl(proxywarriorJdbcConnection);
-        this.hikariDs.setUsername("SA");
-        this.hikariDs.setPassword("");
+    /**
+     * Sets DS.
+     *
+     * @param ds
+     */
+    protected void setDataSource(HikariDataSource ds) {
+        if (this.hikariDs == null) {
+            if (ds == null) {
+                File proxywarriorDbDir = Paths.get(System.getProperty("user.home"), ".proxywarrior").toFile();
+                proxywarriorDbDir.mkdirs();
 
-        Flyway.configure().dataSource(this.hikariDs).load().migrate();
+                String proxywarriorJdbcConnection = "jdbc:hsqldb:" + proxywarriorDbDir + File.separator + "proxywarrior";
 
-        Base.open(hikariDs);
-
-//        List<Configuration> c = Configuration.findAll();
-//        try {
-//            System.out.println(IOUtils.toString(((JDBCClobClient) c.get(0).get("configuration")).getCharacterStream()));
-//        } catch (IOException ex) {
-//            Logger.getLogger(ProxyWarrior.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-        Base.exec("insert into CONFIGURATIONS (CONFIGURATION) values ('stasha')");
-        Base.find("select * from CONFIGURATIONS").with(new RowListener() {
-            @Override
-            public boolean next(Map<String, Object> row) {
-                System.out.println(row);
-                return true;
+                this.hikariDs = new HikariDataSource();
+                this.hikariDs.setJdbcUrl(proxywarriorJdbcConnection);
+                this.hikariDs.setUsername("SA");
+                this.hikariDs.setPassword("");
+            } else {
+                this.hikariDs = ds;
             }
-        });
-        Base.commitTransaction();
-        Base.close();
+        }
+    }
+
+    /**
+     * Initializes ProxyWarrior DB.
+     *
+     * @throws SQLException
+     */
+    public void initDb() throws SQLException {
+        setDataSource(null);
+        Flyway.configure().dataSource(this.hikariDs).load().migrate();
+    }
+
+    /**
+     * Saves configuration into DB.
+     *
+     * @param config
+     * @param path
+     */
+    protected void saveConfigToDb(RequestConfig config, String path) {
+        if (hikariDs.isRunning()) {
+
+            Base.openTransaction();
+
+            try {
+                ConfigurationEntity.update(LAST_CONFIG_USED + " = ?", null, false);
+
+                ConfigurationEntity c = ConfigurationEntity.findFirst("CONFIG_ID = ?", config.getId());
+                c = c == null ? new ConfigurationEntity() : c;
+
+                c.setString("CONFIG_ID", config.getId())
+                        .setBoolean("LAST_CONFIG_USED", true)
+                        .setString("CONFIG_PATH", path)
+                        .setString("CONFIG", ConfigLoader.getUserConfig())
+                        .saveIt();
+
+                Base.commitTransaction();
+
+            } catch (Exception ex) {
+                Base.rollbackTransaction();
+                String msg = "Failed to save configuration with id \"" + config.getId() + "\" into DB";
+                LOGGER.log(Level.SEVERE, msg, ex);
+                throw new ProxyWarriorException(msg, ex);
+            }
+        }
+    }
+
+    /**
+     * Loads configuration.
+     *
+     * @return
+     */
+    protected RequestConfig loadConfig() {
+        ConfigurationEntity ce = null;
+
+        // configuration is always loaded in next order
+        // 1. from system path "proxywarrior.config.location"
+        // 2. from filter init param "config_location"
+        // 3. LAST_CONFIG_USED from DB
+        propsLocation = System.getProperty(SYSTEM_CONFIG_LOCATION);
+        LOGGER.log(Level.INFO, "System config path: {0}", propsLocation);
+
+        String filterConfigPath = filterConfig.getInitParameter(FILTER_INIT_CONFIG_LOCATION);
+        LOGGER.log(Level.INFO, "Filter config path: {0}", propsLocation);
+
+        propsLocation = propsLocation != null ? propsLocation : filterConfigPath;
+
+        if (propsLocation != null) {
+            this.config = ConfigLoader.load(propsLocation);
+        }
+
+        if (this.config != null) {
+            this.saveConfigToDb(this.config, propsLocation);
+        } else {
+            try {
+                LOGGER.info("Loading config from DB");
+                ce = ConfigurationEntity.findFirst(LAST_CONFIG_USED + " = ?", true);
+            } catch (Exception ex) {
+                String msg = "Failed to load configuration from DB";
+                LOGGER.log(Level.SEVERE, msg, ex);
+                throw new ProxyWarriorException(msg, ex);
+            }
+
+            // loading configuration from DB
+            if (ce != null) {
+                String configString = ce.getString("CONFIG");
+                this.config = ConfigLoader.setConfiguration(configString);
+                propsLocation = ce.getString("CONFIG_PATH");
+
+                if (propsLocation != null) {
+                    LOGGER.log(Level.INFO, "Config path: {0}", propsLocation);
+                    File file = new File(propsLocation);
+
+                    if (!file.exists()) {
+                        try {
+                            LOGGER.log(Level.INFO, "Writing config to: {0}", propsLocation);
+                            FileUtils.writeStringToFile(file, configString, "UTF-8");
+                        } catch (Exception ex) {
+                            String msg = "Failed to save config to location " + propsLocation;
+                            LOGGER.log(Level.SEVERE, msg, ex);
+                            throw new ProxyWarriorException(msg, ex);
+                        }
+                    }
+                }
+            }
+        }
+
+        // if config is not loaded from any source, default config is used
+        if (this.config == null) {
+            LOGGER.log(Level.INFO, "Loading default config");
+            this.config = ConfigLoader.setConfiguration(null);
+            this.saveConfigToDb(this.config, null);
+        }
+
+        // if propsLocation is not null, then we pull periodically to load new
+        // configuration in case it has changed
+        if (propsLocation != null) {
+            CONFIG_RELOAD_TIMER.scheduleAtFixedRate(new ConfigLoader(propsLocation, (c) -> {
+                this.config = c;
+                this.saveConfigToDb(this.config, propsLocation);
+            }), 0, 1000 * 10);
+        }
+
+        return this.config;
     }
 
     @Override
@@ -99,28 +230,25 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         this.filterConfig = filterConfig;
 
-//        try {
-//            initDb();
-//        } catch (SQLException ex) {
-//            Logger.getLogger(ProxyWarrior.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-        propsLocation = System.getProperty("proxywarrior.config");
-        if (propsLocation == null) {
-            propsLocation = filterConfig.getInitParameter("PROPS_LOCATION");
-        }
         try {
-            this.config = ConfigLoader.load(propsLocation);
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load configuration from path: " + propsLocation, ex);
+            initDb();
+        } catch (Exception ex) {
+            String msg = "Failed to initialize ProxyWarrior DB";
+            LOGGER.log(Level.SEVERE, msg, ex);
+            throw new ProxyWarriorException(msg, ex);
         }
-        if (propsLocation != null) {
-            CONFIG_RELOAD_TIMER.scheduleAtFixedRate(new ConfigLoader(propsLocation, (c) -> {
-                this.config = c;
-            }), 0, 1000 * 10);
+
+        try {
+            Base.open(hikariDs);
+            RequestConfig c = loadConfig();
+            c.getListeners().init(this);
+        } finally {
+            Base.close();
         }
+
     }
 
-    private String getConfigParam(Object value, String defaultValue) {
+    protected String getConfigParam(Object value, String defaultValue) {
         return value != null ? String.valueOf(value) : defaultValue;
     }
 
@@ -265,7 +393,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
     private long getContentLength(HttpMessage reqresp) {
         Header contentLength = reqresp.getFirstHeader("Content-Length");
-        
+
         if (contentLength != null) {
             return Long.parseLong(contentLength.getValue());
         }
@@ -369,6 +497,8 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         REQUEST_METADATA.set(metadata);
 
+        metadata.setDataSource(this.hikariDs);
+
         String localAddress = htReq.getLocalAddr();
         int localPort = htReq.getLocalPort();
         String reqAddress = htReq.getRemoteAddr();
@@ -382,33 +512,50 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         boolean isSameRequest = (requestUrl.equals(proxyUrl) && localAddress.equals(reqAddress) && localPort == reqPort);
         boolean isAutoProxy = (req.isAutoProxy() != null && req.isAutoProxy() == true) && (req.getAutoProxyExpireTime() == null || req.getAutoProxyExpireTime().after(new Date()));
 
-        if (isSameRequest || isAutoProxy == false) {
-            request.setAttribute("proxy", metadata);
-            req.getListeners().fire(ProxyAction.AFTER_NOT_PROXY_REQUEST, metadata);
-            chain.doFilter(request, response);
-        } else {
-            req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
+        try {
+            Base.open(this.hikariDs);
 
-            getHttpClient(metadata);
+            if (isSameRequest || isAutoProxy == false) {
+                request.setAttribute("proxy", metadata);
+                req.getListeners().fire(ProxyAction.AFTER_NOT_PROXY_REQUEST, metadata);
+                chain.doFilter(request, response);
+            } else {
+                req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 
-            super.service(request, response);
+                getHttpClient(metadata);
+
+                super.service(request, response);
+            }
+        } finally {
+            Base.close();
         }
     }
 
     @Override
     public void destroy() {
         try {
-            if (hikariDs != null) {
-                hikariDs.close();
-            }
+            CONFIG_RELOAD_TIMER.cancel();
         } finally {
             try {
                 if (config != null) {
-                    config.dispose();
+                    try {
+                        config.dispose();
+                    } finally {
+                        config.getListeners().destroy(this);
+                    }
                 }
             } finally {
                 try {
-                    CONFIG_RELOAD_TIMER.cancel();
+                    if (hikariDs != null && !hikariDs.isClosed()) {
+                        try {
+                            hikariDs.getConnection().prepareStatement("shutdown").execute();
+                        } catch (SQLException ex) {
+                            String msg = "Failed to shutdown DB";
+                            LOGGER.log(Level.SEVERE, msg, ex);
+                        } finally {
+                            hikariDs.close();
+                        }
+                    }
                 } finally {
                     super.destroy();
                 }

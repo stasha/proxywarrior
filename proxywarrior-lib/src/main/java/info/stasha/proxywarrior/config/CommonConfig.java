@@ -3,7 +3,6 @@ package info.stasha.proxywarrior.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import info.stasha.proxywarrior.config.logging.LogConfig;
 import info.stasha.proxywarrior.listeners.Listeners;
-import info.stasha.proxywarrior.logging.LoggerWarrior;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -14,8 +13,6 @@ import java.util.regex.Pattern;
  * @param <T>
  */
 public abstract class CommonConfig<T extends CommonConfig> {
-
-    private String instance;
 
     @JsonIgnore
     private CommonConfig parent;

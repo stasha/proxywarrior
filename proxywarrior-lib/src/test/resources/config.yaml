@@ -1,4 +1,6 @@
 ---
+id: test-config
+
 properties:
   host: http://localhost
   attrkey: Attribute-Header # attrval is in TestModel

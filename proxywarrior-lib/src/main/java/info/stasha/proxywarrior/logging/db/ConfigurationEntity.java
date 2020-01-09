@@ -9,7 +9,7 @@ import org.javalite.activejdbc.annotations.Table;
  * @author stasha
  */
 @Generated
-@Table("RESPONSES")
-public class ResponseLogEntity extends Model {
+@Table("CONFIGURATION")
+public class ConfigurationEntity extends Model {
 
 }

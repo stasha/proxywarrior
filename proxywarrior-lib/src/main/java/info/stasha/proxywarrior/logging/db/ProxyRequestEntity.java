@@ -9,7 +9,7 @@ import org.javalite.activejdbc.annotations.Table;
  * @author stasha
  */
 @Generated
-@Table("REQUESTS")
-public class RequestLogEntity extends Model {
+@Table("PROXY_REQUEST")
+public class ProxyRequestEntity extends Model {
     
 }

@@ -11,8 +11,13 @@
     <packaging>jar</packaging>
     
     <dependencies>
-        
-
+        <dependency>
+            <groupId>info.stasha</groupId>
+            <artifactId>testosterone</artifactId>
+            <version>3.0.2-SNAPSHOT</version>
+            <scope>test</scope>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     
     <build>
