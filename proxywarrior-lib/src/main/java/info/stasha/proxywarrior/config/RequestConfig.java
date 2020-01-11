@@ -1,7 +1,6 @@
 package info.stasha.proxywarrior.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import info.stasha.proxywarrior.listeners.ProxyWarriorListener;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
@@ -13,11 +12,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configuration used for configuring request.
@@ -26,13 +25,13 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class RequestConfig extends CommonConfig<RequestConfig> {
 
-    private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(RequestConfig.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestConfig.class.getName());
 
     public static final String REQUEST_METADATA = "proxywarriormetadata";
     public static final String TARGET_URI_REGEX = ".*:\\/\\/.*?[\\w.:-]*";
 
     private static RequestConfig PROXY_WARRIOR_REQUEST_CONFIG;
-    
+
     private List<RequestConfig> requests = new ArrayList<>();
     private List<ResponseConfig> responses = new ArrayList<>();
 
@@ -304,7 +303,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
             return url.getProtocol() + "://" + url.getAuthority();
         } catch (MalformedURLException ex) {
             String msg = "Malformed URL " + proxyUrl;
-            LOGGER.log(Level.SEVERE, msg);
+            LOGGER.error(msg);
             throw new RuntimeException(ex);
         }
     }

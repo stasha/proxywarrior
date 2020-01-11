@@ -2,6 +2,7 @@ package info.stasha.proxywarrior;
 
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.config.TestModel;
+import info.stasha.testosterone.TestResponseBuilder.TestResponse;
 import info.stasha.testosterone.annotation.Request;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -97,24 +98,30 @@ public class ProxyWarriorTest extends AbstractTest {
 
     @POST
     @Path("/proxy/methodtextresponse")
-    public String getPostTextResponse() {
+    public String getPostTextResponse(String text) {
+        Assert.assertEquals("Text argument should equal", "post text", text);
         return "must return some text";
     }
 
+    public static String entityText = "post text";
+
     @Test
-    @Request(url = "/methodtextresponse", method = "POST", entity = "")
-    public void testPostTextResponse(Response resp) {
-        Assert.assertEquals("Response text should equal", "my post text response", resp.readEntity(String.class));
+    @Request(url = "/methodtextresponse", method = "POST", entity = "entityText")
+    public void testPostTextResponse(TestResponse resp) {
+        Assert.assertEquals("Response text should equal", "my post text response", resp.getResponse().readEntity(String.class));
     }
 
     @PUT
     @Path("/proxy/methodtextresponse")
-    public String getPutTextResponse() {
+    public String getPutTextResponse(String text) {
+        Assert.assertEquals("Text argument should equal", "put text", text);
         return "must return some text";
     }
 
+    public static String entityText2 = "put text";
+
     @Test
-    @Request(url = "/methodtextresponse", method = "PUT", entity = "")
+    @Request(url = "/methodtextresponse", method = "PUT", entity = "entityText2")
     public void testPutTextResponse(Response resp) {
         Assert.assertEquals("Response text should equal", "my put text response", resp.readEntity(String.class));
     }

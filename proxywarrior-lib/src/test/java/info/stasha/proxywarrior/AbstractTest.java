@@ -7,7 +7,7 @@ import info.stasha.testosterone.db.HsqlDbConfig;
 import info.stasha.testosterone.jersey.junit4.Testosterone;
 import info.stasha.testosterone.junit4.TestosteroneRunner;
 import info.stasha.testosterone.servlet.Filter;
-import info.stasha.testosterone.servlet.ServletContainerConfig; 
+import info.stasha.testosterone.servlet.ServletContainerConfig;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import static org.mockito.ArgumentMatchers.any;

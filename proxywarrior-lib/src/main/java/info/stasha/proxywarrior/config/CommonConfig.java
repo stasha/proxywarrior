@@ -1,7 +1,6 @@
 package info.stasha.proxywarrior.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import info.stasha.proxywarrior.config.logging.LogConfig;
 import info.stasha.proxywarrior.listeners.Listeners;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -26,7 +25,6 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private Pattern methodPattern;
     @JsonIgnore
     private Pattern requestHeaderPattern;
-    private LogConfig log;
     private String removeHeaders;
     @JsonIgnore
     private Pattern removeHeadersPattern;
@@ -204,24 +202,6 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void setRequestHeaderPattern(Pattern requestHeaderPattern) {
         this.requestHeaderPattern = requestHeaderPattern;
-    }
-
-    /**
-     * Returns logging configuration.
-     *
-     * @return
-     */
-    public LogConfig getLog() {
-        return Utils.getValue(log, this, getParent(), () -> getParent().getLog(), null);
-    }
-
-    /**
-     * Sets logging configuration.
-     *
-     * @param log
-     */
-    public void setLog(LogConfig log) {
-        this.log = log;
     }
 
     /**

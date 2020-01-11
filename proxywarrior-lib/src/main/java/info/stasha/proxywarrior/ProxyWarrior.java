@@ -8,7 +8,6 @@ import info.stasha.proxywarrior.config.RequestConfig;
 import info.stasha.proxywarrior.config.HttpClientConfig;
 import info.stasha.proxywarrior.config.loader.ConfigLoader;
 import info.stasha.proxywarrior.config.ResponseConfig;
-import info.stasha.proxywarrior.logging.db.ConfigurationEntity;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,8 +19,7 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Timer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.ThreadLocalRandom;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -30,6 +28,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
@@ -39,11 +38,12 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
-import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.util.EntityUtils;
 import org.flywaydb.core.Flyway;
 import org.javalite.activejdbc.Base;
 import org.mitre.dsmiley.httpproxy.ProxyServlet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -55,14 +55,14 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     public static final String FILTER_INIT_CONFIG_LOCATION = "config_location";
     public static final String LAST_CONFIG_USED = "LAST_CONFIG_USED";
 
-    private static final Logger LOGGER = Logger.getLogger(ProxyWarrior.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyWarrior.class.getName());
     private static final ThreadLocal<Metadata> REQUEST_METADATA = new ThreadLocal<>();
 
     private final Timer CONFIG_RELOAD_TIMER = new Timer(true);
     private String propsLocation;
     private RequestConfig config; //= new RequestConfig();
     private FilterConfig filterConfig;
-    private HikariDataSource hikariDs;
+    private HikariDataSource dataSource;
 
     /**
      * Creates new proxy warrior instance.
@@ -73,10 +73,10 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     /**
      * Creates new proxy warrior instance.
      *
-     * @param hikariDs
+     * @param dataSource
      */
-    public ProxyWarrior(HikariDataSource hikariDs) {
-        this.hikariDs = hikariDs;
+    public ProxyWarrior(HikariDataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     /**
@@ -85,21 +85,39 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
      * @param ds
      */
     protected void setDataSource(HikariDataSource ds) {
-        if (this.hikariDs == null) {
+        if (this.dataSource == null) {
             if (ds == null) {
                 File proxywarriorDbDir = Paths.get(System.getProperty("user.home"), ".proxywarrior").toFile();
                 proxywarriorDbDir.mkdirs();
 
                 String proxywarriorJdbcConnection = "jdbc:hsqldb:" + proxywarriorDbDir + File.separator + "proxywarrior";
 
-                this.hikariDs = new HikariDataSource();
-                this.hikariDs.setJdbcUrl(proxywarriorJdbcConnection);
-                this.hikariDs.setUsername("SA");
-                this.hikariDs.setPassword("");
+                this.dataSource = new HikariDataSource();
+                this.dataSource.setJdbcUrl(proxywarriorJdbcConnection);
+                this.dataSource.setUsername("SA");
+                this.dataSource.setPassword("");
             } else {
-                this.hikariDs = ds;
+                this.dataSource = ds;
             }
         }
+    }
+
+    /**
+     * Returns DataSource.
+     *
+     * @return
+     */
+    public DataSource getDataSource() {
+        return this.dataSource;
+    }
+
+    /**
+     * Returns RequestConfig.
+     *
+     * @return
+     */
+    public RequestConfig getConfig() {
+        return this.config;
     }
 
     /**
@@ -109,7 +127,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
      */
     public void initDb() throws SQLException {
         setDataSource(null);
-        Flyway.configure().dataSource(this.hikariDs).load().migrate();
+        Flyway.configure().dataSource(this.dataSource).load().migrate();
     }
 
     /**
@@ -119,28 +137,28 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
      * @param path
      */
     protected void saveConfigToDb(RequestConfig config, String path) {
-        if (hikariDs.isRunning()) {
+        if (dataSource.isRunning()) {
 
             Base.openTransaction();
 
             try {
-                ConfigurationEntity.update(LAST_CONFIG_USED + " = ?", null, false);
+                Base.exec("UPDATE CONFIGURATION SET LAST_CONFIG_USED = ?", false);
+                Integer configExists = (Integer) Base.firstCell("SELECT 1 FROM CONFIGURATION WHERE CONFIG_ID = ?", config.getId());
 
-                ConfigurationEntity c = ConfigurationEntity.findFirst("CONFIG_ID = ?", config.getId());
-                c = c == null ? new ConfigurationEntity() : c;
-
-                c.setString("CONFIG_ID", config.getId())
-                        .setBoolean("LAST_CONFIG_USED", true)
-                        .setString("CONFIG_PATH", path)
-                        .setString("CONFIG", ConfigLoader.getUserConfig())
-                        .saveIt();
+                if (configExists == null) {
+                    Base.exec("INSERT INTO CONFIGURATION (CONFIG_ID, LAST_CONFIG_USED, CONFIG_PATH, CONFIG) VALUES (?, ?, ?, ?)",
+                            config.getId(), true, path, ConfigLoader.getUserConfig());
+                } else {
+                    Base.exec("UPDATE CONFIGURATION LAST_CONFIG_USED = ?, CONFIG_PATH = ?, CONFIG = ? WHERE CONFIG_ID = ?",
+                            true, path, ConfigLoader.getUserConfig(), config.getId());
+                }
 
                 Base.commitTransaction();
 
             } catch (Exception ex) {
                 Base.rollbackTransaction();
                 String msg = "Failed to save configuration with id \"" + config.getId() + "\" into DB";
-                LOGGER.log(Level.SEVERE, msg, ex);
+                LOGGER.error(msg, ex);
                 throw new ProxyWarriorException(msg, ex);
             }
         }
@@ -152,17 +170,17 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
      * @return
      */
     protected RequestConfig loadConfig() {
-        ConfigurationEntity ce = null;
+        String ce = null;
 
         // configuration is always loaded in next order
         // 1. from system path "proxywarrior.config.location"
         // 2. from filter init param "config_location"
         // 3. LAST_CONFIG_USED from DB
         propsLocation = System.getProperty(SYSTEM_CONFIG_LOCATION);
-        LOGGER.log(Level.INFO, "System config path: {0}", propsLocation);
+        LOGGER.info("System config path: {}", propsLocation);
 
         String filterConfigPath = filterConfig.getInitParameter(FILTER_INIT_CONFIG_LOCATION);
-        LOGGER.log(Level.INFO, "Filter config path: {0}", propsLocation);
+        LOGGER.info("Filter config path: {}", propsLocation);
 
         propsLocation = propsLocation != null ? propsLocation : filterConfigPath;
 
@@ -175,30 +193,29 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         } else {
             try {
                 LOGGER.info("Loading config from DB");
-                ce = ConfigurationEntity.findFirst(LAST_CONFIG_USED + " = ?", true);
+                ce = (String) Base.firstCell("SELECT CONFIG FROM CONFIGURATION WHERE LAST_CONFIG_USED = ?", true);
             } catch (Exception ex) {
                 String msg = "Failed to load configuration from DB";
-                LOGGER.log(Level.SEVERE, msg, ex);
+                LOGGER.error(msg, ex);
                 throw new ProxyWarriorException(msg, ex);
             }
 
             // loading configuration from DB
             if (ce != null) {
-                String configString = ce.getString("CONFIG");
-                this.config = ConfigLoader.setConfiguration(configString);
-                propsLocation = ce.getString("CONFIG_PATH");
+                this.config = ConfigLoader.setConfiguration(ce);
+                propsLocation = (String) Base.firstCell("SELECT CONFIG FROM CONFIGURATION WHERE CONFIG_ID = ?", this.config.getId());
 
                 if (propsLocation != null) {
-                    LOGGER.log(Level.INFO, "Config path: {0}", propsLocation);
+                    LOGGER.info("Config path: {}", propsLocation);
                     File file = new File(propsLocation);
 
                     if (!file.exists()) {
                         try {
-                            LOGGER.log(Level.INFO, "Writing config to: {0}", propsLocation);
-                            FileUtils.writeStringToFile(file, configString, "UTF-8");
+                            LOGGER.info("Writing config to: {}", propsLocation);
+                            FileUtils.writeStringToFile(file, ce, "UTF-8");
                         } catch (Exception ex) {
                             String msg = "Failed to save config to location " + propsLocation;
-                            LOGGER.log(Level.SEVERE, msg, ex);
+                            LOGGER.error(msg, ex);
                             throw new ProxyWarriorException(msg, ex);
                         }
                     }
@@ -208,7 +225,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         // if config is not loaded from any source, default config is used
         if (this.config == null) {
-            LOGGER.log(Level.INFO, "Loading default config");
+            LOGGER.info("Loading default config");
             this.config = ConfigLoader.setConfiguration(null);
             this.saveConfigToDb(this.config, null);
         }
@@ -234,12 +251,12 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             initDb();
         } catch (Exception ex) {
             String msg = "Failed to initialize ProxyWarrior DB";
-            LOGGER.log(Level.SEVERE, msg, ex);
+            LOGGER.error(msg, ex);
             throw new ProxyWarriorException(msg, ex);
         }
 
         try {
-            Base.open(hikariDs);
+            Base.open(dataSource);
             RequestConfig c = loadConfig();
             c.getListeners().init(this);
         } finally {
@@ -391,15 +408,6 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     ) throws IOException {
     }
 
-    private long getContentLength(HttpMessage reqresp) {
-        Header contentLength = reqresp.getFirstHeader("Content-Length");
-
-        if (contentLength != null) {
-            return Long.parseLong(contentLength.getValue());
-        }
-        return -1L;
-    }
-
     @Override
     protected void service(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
         super.service(servletRequest, servletResponse);
@@ -408,15 +416,16 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         metadata.setResponse(metadata.getRequestConfig().getResponse(metadata));
         ResponseConfig responseConfig = metadata.getResponseConfig();
         BasicHttpResponseWrapper proxyResponse = (BasicHttpResponseWrapper) metadata.getProxyResponse();
-        HttpEntity entity = null;
+        HttpEntity oldEntity = null;
+        HttpEntity newEntity = null;
 
         InputStream content = null;
 
         try {
 
-            entity = proxyResponse.getOriginalEntity();
+            oldEntity = proxyResponse.getOriginalEntity();
 
-            if (entity != null) {
+            if (oldEntity != null) {
                 String text = metadata.getResponseConfig().getText();
                 String file = metadata.getResponseConfig().getFile();
 
@@ -455,7 +464,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
                     content = new FileInputStream(f);
                 } else {
-                    content = entity.getContent();
+                    content = oldEntity.getContent();
                 }
 
             } else {
@@ -463,20 +472,28 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
             }
 
-            if (entity != null && content != null) {
-                proxyResponse.setEntity(new InputStreamEntity(content, getContentLength(proxyResponse)));
+            if (oldEntity != null && content != null) {
+                Utils.setEntity(proxyResponse, content);
             }
 
             metadata.getRequestConfig().getListeners().fire(ProxyAction.BEFORE_HTTP_RESPONSE, metadata);
 
             if (content != null) {
-                IOUtils.copy(content, servletResponse.getOutputStream());
+                // new content could be set by listeners so we must pull it again
+                newEntity = proxyResponse.getOriginalEntity();
+
+                if (newEntity != null) {
+                    content = newEntity.getContent();
+                }
+
+                if (content != null) {
+                    IOUtils.copy(content, servletResponse.getOutputStream());
+                }
             }
 
         } finally {
-            if (entity != null) {
-                EntityUtils.consumeQuietly(entity);
-            }
+            EntityUtils.consumeQuietly(newEntity);
+            EntityUtils.consumeQuietly(oldEntity);
         }
 
     }
@@ -487,7 +504,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         HttpServletRequest htReq = (HttpServletRequest) request;
         HttpServletResponse htResp = (HttpServletResponse) response;
 
-        System.out.println("config: " + config);
+        htReq.setAttribute("request-id", System.nanoTime() + ThreadLocalRandom.current().nextInt(100));
 
         Metadata metadata = config.getMetadata(htReq, htResp);
         if (metadata == null) {
@@ -497,7 +514,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         REQUEST_METADATA.set(metadata);
 
-        metadata.setDataSource(this.hikariDs);
+        metadata.setDataSource(this.dataSource);
 
         String localAddress = htReq.getLocalAddr();
         int localPort = htReq.getLocalPort();
@@ -512,22 +529,23 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         boolean isSameRequest = (requestUrl.equals(proxyUrl) && localAddress.equals(reqAddress) && localPort == reqPort);
         boolean isAutoProxy = (req.isAutoProxy() != null && req.isAutoProxy() == true) && (req.getAutoProxyExpireTime() == null || req.getAutoProxyExpireTime().after(new Date()));
 
-        try {
-            Base.open(this.hikariDs);
-
-            if (isSameRequest || isAutoProxy == false) {
-                request.setAttribute("proxy", metadata);
-                req.getListeners().fire(ProxyAction.AFTER_NOT_PROXY_REQUEST, metadata);
-                chain.doFilter(request, response);
-            } else {
+        if (isSameRequest || isAutoProxy == false) {
+            request.setAttribute("proxy", metadata);
+            req.getListeners().fire(ProxyAction.AFTER_NOT_PROXY_REQUEST, metadata);
+            chain.doFilter(request, response);
+        } else {
+            try {
+                Base.open(this.dataSource);
+                htReq = new HttpServletRequestWrapperImpl(htReq);
+                metadata.setHttpServletRequest(htReq);
                 req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 
                 getHttpClient(metadata);
 
-                super.service(request, response);
+                super.service(htReq, response);
+            } finally {
+                Base.close();
             }
-        } finally {
-            Base.close();
         }
     }
 
@@ -546,14 +564,14 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 }
             } finally {
                 try {
-                    if (hikariDs != null && !hikariDs.isClosed()) {
+                    if (dataSource != null && !dataSource.isClosed()) {
                         try {
-                            hikariDs.getConnection().prepareStatement("shutdown").execute();
+                            dataSource.getConnection().prepareStatement("shutdown").execute();
                         } catch (SQLException ex) {
                             String msg = "Failed to shutdown DB";
-                            LOGGER.log(Level.SEVERE, msg, ex);
+                            LOGGER.error(msg, ex);
                         } finally {
-                            hikariDs.close();
+                            dataSource.close();
                         }
                     }
                 } finally {

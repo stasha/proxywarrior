@@ -9,11 +9,10 @@ properties:
 targetUri: _[host]_:9998/proxy
 model: info.stasha.proxywarrior.config.TestModel
 removeHeaders: ".*"
-
-log:
-  content: true
-  matchedUrl: true
-  headers: true
+  
+listeners:
+  # listener that logs all request/responses into DB
+  - info.stasha.proxywarrior.listeners.LogToDbListener
   
 clientConfig:
   handleRedirects: true
@@ -25,9 +24,7 @@ headers:
   add-if-not-present: add-if-not-present-original
   keep-eisting: keep-existing-original
   delete-existing: deleteheader
-  
-listeners:
-  - info.stasha.proxywarrior.listeners.LogToDbListener
+
 
 requests:
     #------------------------------------------------------
