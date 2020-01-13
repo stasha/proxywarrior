@@ -1,6 +1,5 @@
 package info.stasha.proxywarrior;
 
-import info.stasha.proxywarrior.config.Utils;
 import com.zaxxer.hikari.HikariDataSource;
 import info.stasha.proxywarrior.config.CommonConfig;
 import info.stasha.proxywarrior.config.Metadata;
@@ -31,7 +30,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpMessage;
 import org.apache.http.HttpRequest;
@@ -334,53 +332,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     }
 
     protected void overrideHeaders(HttpMessage message, CommonConfig<CommonConfig> config) {
-
-        if (config.getHeaders() != null) {
-            for (String key : config.getHeaders().keySet()) {
-                for (Header h : message.getAllHeaders()) {
-
-                    if (key.startsWith("=")) {
-                        // keep header as is
-                        continue;
-                    }
-
-                    if (key.startsWith("~")) {
-                        // remove header
-                        String name = key.replaceFirst("~", "");
-                        name = Utils.getValue(name, config);
-                        if (name.equals(h.getName())) {
-                            message.removeHeader(h);
-                            continue;
-                        }
-                    }
-
-                    if (key.startsWith("+")) {
-                        // add new header if it does not exist
-                        String name = key.replaceFirst("\\+", "");
-                        name = Utils.getValue(name, config);
-                        if (!message.containsHeader(name)) {
-                            message.setHeader(name, Utils.getValue(config.getHeaders().get(key), config));
-                            continue;
-                        }
-                    }
-                    // add or replace existing header
-                    if (!key.startsWith("=") && !key.startsWith("+") && !key.startsWith("~")) {
-                        message.setHeader(Utils.getValue(key, config), Utils.getValue(config.getHeaders().get(key), config));
-                        continue;
-                    }
-
-                    // remove headers based on removeHeaders pattern
-                    if (config.getRemoveHeaders() != null) {
-                        if (config.getRemoveHeadersPattern().matcher(h.getName()).find()) {
-                            message.removeHeader(h);
-                            continue;
-                        }
-                    }
-                }
-            }
-
-        }
-
+        Utils.setHeaders(message, config);
     }
 
     @Override

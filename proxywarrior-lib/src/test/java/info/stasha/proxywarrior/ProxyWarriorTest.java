@@ -31,8 +31,11 @@ public class ProxyWarriorTest extends AbstractTest {
     public String passThroughProxyEndpoint(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
         Metadata proxyRequest = (Metadata) req.getAttribute("proxy");
         Assert.assertNotNull("Request should have proxy attribute", proxyRequest);
-        Assert.assertEquals("Model header should equal", TestModel.MODEL_HEADER, req.getHeader("xtra"));
-        Assert.assertEquals("Model header should equal", TestModel.MODEL_2_HEADER, req.getHeader("Attribute-Header"));
+        
+        // headers are not touched for passthrough requests
+        Assert.assertNull("Model header should be null", req.getHeader("xtra"));
+        Assert.assertNull("Model header should be null", req.getHeader("Attribute-Header"));
+        
         resp.setHeader("proxied", "true");
 
         return "get test";
@@ -56,7 +59,7 @@ public class ProxyWarriorTest extends AbstractTest {
     @Request(url = "/fileresponse")
     public void testFileResponse(Response resp) {
         String addIfPresent = resp.getHeaderString("add-if-not-present");
-        String keepExisting = resp.getHeaderString("keep-eisting");
+        String keepExisting = resp.getHeaderString("keep-existing");
         Assert.assertEquals("Header value should equal", "add-if-not-present-original", addIfPresent);
         Assert.assertEquals("Header value should equal", "keep-existing-original", keepExisting);
         Assert.assertNull("Header should be null", resp.getHeaderString("delete-existing"));

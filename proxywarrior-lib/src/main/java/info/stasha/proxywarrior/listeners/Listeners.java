@@ -3,7 +3,7 @@ package info.stasha.proxywarrior.listeners;
 import info.stasha.proxywarrior.ProxyAction;
 import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.config.Metadata;
-import info.stasha.proxywarrior.config.Utils;
+import info.stasha.proxywarrior.Utils;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;

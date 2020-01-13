@@ -1,7 +1,9 @@
 package info.stasha.proxywarrior.config;
 
+import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import info.stasha.proxywarrior.listeners.Listeners;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private String removeHeaders;
     @JsonIgnore
     private Pattern removeHeadersPattern;
-    private Map<String, String> headers;
+    private Map<String, List<String>> headers;
 
     private Listeners listeners;
 
@@ -251,8 +253,8 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * @see #setHeaders(java.util.Map)
      * @return
      */
-    public Map<String, String> getHeaders() {
-        return Utils.getMap(headers, getParent() != null ? getParent().getHeaders() : null);
+    public Map<String, List<String>> getHeaders() {
+        return Utils.getMapList(headers, getParent() != null ? getParent().getHeaders() : null);
     }
 
     /**
@@ -269,7 +271,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
      *
      * @param headers
      */
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(Map<String, List<String>> headers) {
         this.headers = headers;
     }
 

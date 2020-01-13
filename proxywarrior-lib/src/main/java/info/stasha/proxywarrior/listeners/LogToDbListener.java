@@ -1,15 +1,16 @@
 package info.stasha.proxywarrior.listeners;
 
+import com.fasterxml.jackson.databind.ObjectWriter;
 import info.stasha.proxywarrior.BasicHttpResponseWrapper;
 import info.stasha.proxywarrior.Executable;
+import info.stasha.proxywarrior.MapperFactory;
 import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.config.Metadata;
-import info.stasha.proxywarrior.config.Utils;
+import info.stasha.proxywarrior.Utils;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.concurrent.ThreadLocalRandom;
 import javax.servlet.http.HttpServletRequest;
 import org.javalite.activejdbc.Base;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 public class LogToDbListener extends LoggingListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LogToDbListener.class);
+    private static final ObjectWriter WRITER = MapperFactory.getMapper("yaml").writerWithDefaultPrettyPrinter();
 
     private ProxyWarrior proxyWarrior;
 
@@ -76,9 +78,11 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void afterHttpRequest(Metadata metadata) {
+
         long id = getId(metadata);
         HttpServletRequest req = metadata.getHttpServletRequest();
         InputStream content = Utils.getContent(req);
+        Utils.getHeaders(req);
 
         runInTrunsaction(metadata, "After http request", () -> {
 
@@ -98,7 +102,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setString(3, metadata.getFullUrl());
             ps.setString(4, metadata.getProxyUrl());
             ps.setString(5, metadata.getHttpServletRequest().getMethod());
-            ps.setString(6, "");
+            ps.setString(6, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletRequest())));
             setBlob(ps, 7, content);
             ps.execute();
             System.out.println("After http request");
@@ -119,6 +123,8 @@ public class LogToDbListener extends LoggingListener {
         long id = getId(metadata);
         InputStream content = Utils.getContent(metadata.getProxyRequest());
 
+        Utils.getHeaders(metadata.getProxyRequest());
+
         runInTrunsaction(metadata, "Before proxy request", () -> {
             PreparedStatement ps = Base.startBatch(
                     "INSERT INTO PROXY_REQUEST ("
@@ -128,7 +134,7 @@ public class LogToDbListener extends LoggingListener {
                     + ") VALUES (?, ?, ?)");
 
             ps.setLong(1, id);
-            ps.setString(2, "");
+            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest())));
             setBlob(ps, 3, content);
             ps.execute();
         });
@@ -157,7 +163,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setLong(1, id);
             ps.setInt(2, metadata.getProxyResponse().getStatusLine().getStatusCode());
             ps.setString(3, metadata.getProxyResponse().getStatusLine().toString());
-            ps.setString(4, "");
+            ps.setString(4, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
             setBlob(ps, 5, content);
             ps.execute();
         });
@@ -182,7 +188,7 @@ public class LogToDbListener extends LoggingListener {
                     + ") VALUES (?, ?, ?)");
 
             ps.setLong(1, id);
-            ps.setString(2, "");
+            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
             setBlob(ps, 3, content);
             ps.execute();
         });

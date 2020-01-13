@@ -1,5 +1,6 @@
 package info.stasha.proxywarrior.config;
 
+import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.regex.Pattern;
 

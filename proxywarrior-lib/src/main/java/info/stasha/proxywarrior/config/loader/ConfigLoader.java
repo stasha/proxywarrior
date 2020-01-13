@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import info.stasha.proxywarrior.MapperFactory;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.RequestConfig;
 import java.io.File;
@@ -22,7 +22,7 @@ import org.apache.commons.io.FileUtils;
 public class ConfigLoader extends TimerTask {
 
     private static final Logger LOGGER = Logger.getLogger(ConfigLoader.class.getName());
-    public static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final ObjectMapper MAPPER = MapperFactory.getMapper("yaml");
     private static String defaultConfigString;
     private static String compareConfig;
     private static String userConfig;
