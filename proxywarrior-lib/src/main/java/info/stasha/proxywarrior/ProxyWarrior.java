@@ -456,8 +456,6 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         HttpServletRequest htReq = (HttpServletRequest) request;
         HttpServletResponse htResp = (HttpServletResponse) response;
 
-        htReq.setAttribute("request-id", System.nanoTime() + ThreadLocalRandom.current().nextInt(100));
-
         Metadata metadata = config.getMetadata(htReq, htResp);
         if (metadata == null) {
             htResp.sendError(406, "Requested url did not match any uri/url pattern specified in proxywarrior configuration.");

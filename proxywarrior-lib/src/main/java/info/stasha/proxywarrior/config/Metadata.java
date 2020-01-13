@@ -17,7 +17,7 @@ import org.apache.http.HttpRequest;
 public class Metadata {
 
     private DataSource dataSource;
-    private final String id;
+    private final long id;
     private String fullUrl;
     private String proxyUrl;
     private String proxyUri;
@@ -36,7 +36,7 @@ public class Metadata {
      *
      * @param id
      */
-    public Metadata(String id) {
+    public Metadata(long id) {
         this.id = id;
     }
 
@@ -45,7 +45,7 @@ public class Metadata {
      *
      * @return
      */
-    public String getId() {
+    public long getId() {
         return id;
     }
 

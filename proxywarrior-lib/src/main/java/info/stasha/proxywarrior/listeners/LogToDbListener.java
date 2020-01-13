@@ -80,7 +80,7 @@ public class LogToDbListener extends LoggingListener {
     }
 
     private long getId(Metadata metadata) {
-        return (long) metadata.getHttpServletRequest().getAttribute("request-id");
+        return (long) metadata.getId();
     }
 
     @Override

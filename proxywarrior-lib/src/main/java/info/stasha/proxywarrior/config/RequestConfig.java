@@ -415,7 +415,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
 
         String requestUrl = getFullUrl(request);
 
-        metadata = new Metadata(String.valueOf(System.nanoTime() + ThreadLocalRandom.current().nextInt()));
+        metadata = new Metadata(System.nanoTime() + ThreadLocalRandom.current().nextInt());
         metadata.setHttpServletRequest(request);
         metadata.setHttpServletResponse(response);
         metadata.setFullUrl(requestUrl);
