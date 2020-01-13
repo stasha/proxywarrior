@@ -195,7 +195,7 @@ public class LogToDbListener extends LoggingListener {
                     + ") VALUES (?, ?, ?)");
 
             ps.setLong(1, id);
-            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
+            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletResponse())));
             setBlob(ps, 3, content);
             ps.execute();
         });
