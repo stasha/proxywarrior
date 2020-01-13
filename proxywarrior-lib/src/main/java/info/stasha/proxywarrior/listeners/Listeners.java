@@ -34,8 +34,7 @@ public class Listeners extends HashSet<String> {
         return super.add(listener);
     }
 
-    @Override
-    public boolean remove(Object listener) {
+    public boolean remove(String listener) {
         ALL_LISTENERS.remove(LISTENERS.remove(listener));
         return super.remove(listener);
     }
@@ -79,8 +78,6 @@ public class Listeners extends HashSet<String> {
                     listener.beforeHttpResponse(metadata);
                 });
                 break;
-            default:
-                throw new UnsupportedOperationException("Action: " + action + " is not supported");
         }
     }
 

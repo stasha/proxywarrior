@@ -5,6 +5,7 @@ import info.stasha.proxywarrior.BasicHttpResponseWrapper;
 import info.stasha.proxywarrior.Executable;
 import info.stasha.proxywarrior.MapperFactory;
 import info.stasha.proxywarrior.ProxyWarrior;
+import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.Utils;
 import java.io.InputStream;
@@ -37,12 +38,18 @@ public class LogToDbListener extends LoggingListener {
      */
     public void runInTrunsaction(Metadata metadata, String action, Executable runnable) {
         try {
-            Base.openTransaction();
-            runnable.execute();
-            Base.commitTransaction();
+            try {
+                Base.openTransaction();
+                runnable.execute();
+                Base.commitTransaction();
+            } catch (Exception ex) {
+                Base.rollbackTransaction();
+                throw ex;
+            }
         } catch (Exception ex) {
-            LOGGER.error(action + " failed to be saved into DB.", ex);
-            Base.rollbackTransaction();
+            String msg = action + " failed to be saved into DB.";
+            LOGGER.error(msg, ex);
+            throw new ProxyWarriorException(msg, ex);
         }
     }
 
