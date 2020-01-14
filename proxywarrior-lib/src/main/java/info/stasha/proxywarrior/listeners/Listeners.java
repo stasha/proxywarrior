@@ -5,10 +5,10 @@ import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.Utils;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * Container for storing ProxyWarriorListener-s.
@@ -19,7 +19,7 @@ public class Listeners extends HashSet<String> {
 
     private static final Set<ProxyWarriorListener> ALL_LISTENERS = new LinkedHashSet<>();
 
-    private final Map<String, ProxyWarriorListener> LISTENERS = new TreeMap<>();
+    private final Map<String, ProxyWarriorListener> LISTENERS = new LinkedHashMap<>();
 
     @Override
     public boolean add(String listener) {

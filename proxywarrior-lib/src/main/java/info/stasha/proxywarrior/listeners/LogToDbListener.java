@@ -112,7 +112,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setString(6, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletRequest())));
             setBlob(ps, 7, content);
             ps.execute();
-            System.out.println("After http request");
+            return null;
         });
 
         Blob blob = (Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id);
@@ -122,7 +122,7 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void afterNotProxyRequest(Metadata metadata) {
-        System.out.println("after http request that will be not proxied");
+        // do nothing
     }
 
     @Override
@@ -144,6 +144,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest())));
             setBlob(ps, 3, content);
             ps.execute();
+            return null;
         });
 
         Blob blob = (Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id);
@@ -173,6 +174,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setString(4, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
             setBlob(ps, 5, content);
             ps.execute();
+            return null;
         });
 
         Blob blob = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id);
@@ -198,6 +200,7 @@ public class LogToDbListener extends LoggingListener {
             ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletResponse())));
             setBlob(ps, 3, content);
             ps.execute();
+            return null;
         });
 
         Blob blob = (Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id);

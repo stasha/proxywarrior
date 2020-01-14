@@ -14,6 +14,11 @@ listeners:
   # listener that logs all request/responses into DB
   - info.stasha.proxywarrior.listeners.LogToDbListener
   
+  # listener that logs all request/responses to console
+  # this listener depends on LogToDbListener because it 
+  # reads content data from DB
+  - info.stasha.proxywarrior.listeners.LogToConsoleListener
+  
 clientConfig:
   handleRedirects: true
 

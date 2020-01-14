@@ -276,6 +276,7 @@ public class Utils {
             if (req instanceof HttpServletRequestWrapperImpl) {
                 ((HttpServletRequestWrapperImpl) req).setInputStream(new BufferedInputStream(blob.getBinaryStream()));
             }
+            return null;
         });
     }
 
@@ -294,6 +295,7 @@ public class Utils {
                 }
                 resp.setEntity(new InputStreamEntity(blob != null ? new BufferedInputStream(blob.getBinaryStream()) : content, getContentLength(resp)));
             }
+            return null;
         });
     }
 
@@ -309,6 +311,7 @@ public class Utils {
                     r.setEntity(new InputStreamEntity(new BufferedInputStream(blob.getBinaryStream()), getContentLength(req)));
                 }
             }
+            return null;
         });
     }
 
@@ -368,7 +371,7 @@ public class Utils {
 
                 for (String v : headers) {
                     String value = Utils.getValue(v, config);
-                    
+
                     EXISTING_HEADERS:
                     for (Header header : message.getAllHeaders()) {
                         switch (modifier) {
@@ -395,7 +398,7 @@ public class Utils {
                                     message.removeHeader(header);
                                     continue;
                                 }
-                                
+
                                 // replace or add header
                                 message.setHeader(key, value);
                                 continue;

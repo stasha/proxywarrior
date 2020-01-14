@@ -7,5 +7,5 @@ package info.stasha.proxywarrior;
 @FunctionalInterface
 public interface Executable {
 
-    void execute() throws Exception;
+    Object execute() throws Exception;
 }

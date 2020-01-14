@@ -1,16 +1,19 @@
-package info.stasha.proxywarrior.logging.messages;
+package info.stasha.proxywarrior.listeners;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import static java.lang.System.in;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -19,18 +22,19 @@ import org.apache.commons.io.IOUtils;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class LogObject {
 
-    private static final Logger LOGGER = Logger.getLogger(LogObject.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogObject.class);
 
-    private String id;
-    @JsonIgnore
+    private Long id;
+    private String type;
     private String url;
     private String proxyUrl;
+    private String proxyUri;
     private String status;
     private Integer code;
     private String method;
     private String host;
     private Integer port;
-    private Map<String, String> headers = new LinkedHashMap<>();
+    private String headers;
     private String content;
     @JsonIgnore
     private InputStream contentStream;
@@ -39,12 +43,20 @@ public class LogObject {
     public LogObject() {
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getUrl() {
@@ -61,6 +73,14 @@ public class LogObject {
 
     public void setProxyUrl(String proxyUrl) {
         this.proxyUrl = proxyUrl;
+    }
+
+    public String getProxyUri() {
+        return proxyUri;
+    }
+
+    public void setProxyUri(String proxyUri) {
+        this.proxyUri = proxyUri;
     }
 
     public String getStatus() {
@@ -103,21 +123,16 @@ public class LogObject {
         this.port = port;
     }
 
-    public Map<String, String> getHeaders() {
+    public String getHeaders() {
         return headers;
     }
 
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(String headers) {
         this.headers = headers;
     }
 
     public String getContent() {
-        try {
-            return content != null ? content : contentStream != null ? IOUtils.toString(contentStream, "UTF-8") : null;
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to read contentStream", ex);
-        }
-        return null;
+        return content;
     }
 
     public void setContent(String content) {
@@ -129,7 +144,9 @@ public class LogObject {
     }
 
     public void setContentStream(InputStream contentStream) {
-        this.contentStream = contentStream;
+        if (contentStream != null) {
+            this.contentStream = new BufferedInputStream(contentStream);
+        }
     }
 
     public Date getTime() {
@@ -142,42 +159,52 @@ public class LogObject {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("\n\n------ " + this.getType() + " ------\n");
+
         if (this.getId() != null) {
-            sb.append("  id: ").append(this.getId()).append("\n");
+            sb.append("id: ").append(this.getId()).append("\n");
         }
         if (this.getTime() != null) {
-            sb.append("  time: ").append(new SimpleDateFormat("dd-MMM yyyy HH:mm:ss:SSSS").format(this.getTime())).append("\n");
+            sb.append("time: ").append(new SimpleDateFormat("dd-MMM yyyy HH:mm:ss:SSSS").format(this.getTime())).append("\n");
         }
         if (this.getUrl() != null) {
-            sb.append("  url: ").append(this.getUrl()).append("\n");
+            sb.append("url: ").append(this.getUrl()).append("\n");
+        }
+        if (this.getProxyUri() != null) {
+            sb.append("proxyUri: ").append(this.getProxyUri()).append("\n");
         }
         if (this.getProxyUrl() != null) {
-            sb.append("  proxyUrl: ").append(this.getProxyUrl()).append("\n");
+            sb.append("proxyUrl: ").append(this.getProxyUrl()).append("\n");
         }
         if (this.getStatus() != null) {
-            sb.append("  status: ").append(this.getStatus()).append("\n");
+            sb.append("status: ").append(this.getStatus()).append("\n");
         }
         if (this.getCode() != null) {
-            sb.append("  code: ").append(this.getCode()).append("\n");
+            sb.append("code: ").append(this.getCode()).append("\n");
         }
         if (this.getMethod() != null) {
-            sb.append("  method: ").append(this.getMethod()).append("\n");
+            sb.append("method: ").append(this.getMethod()).append("\n");
         }
         if (this.getHost() != null) {
-            sb.append("  host: ").append(this.getHost()).append("\n");
+            sb.append("host: ").append(this.getHost()).append("\n");
         }
         if (this.getPort() != null) {
-            sb.append("  port: ").append(this.getPort()).append("\n");
+            sb.append("port: ").append(this.getPort()).append("\n");
         }
-        if (!this.getHeaders().isEmpty()) {
-            sb.append("  headers: ").append("\n");
-            for (String key : this.getHeaders().keySet()) {
-                sb.append("    ").append(key).append(": ").append(this.getHeaders().get(key)).append("\n");
-            }
+        if (this.getHeaders() != null) {
+            sb.append("headers: ").append("\n").append(this.getHeaders());
         }
         if (this.getContent() != null) {
             sb.append("content: ").append(this.getContent());
+        }
+
+        //TODO: FIX STREAMING CONTENT TO CONSOLE
+        if (this.getContentStream() != null) {
+            sb.append("content: ").append("\n  ").append(
+                    new BufferedReader(new InputStreamReader(this.getContentStream())).lines().collect(Collectors.joining("\n  "))
+            ).append("\n");
+
+            IOUtils.closeQuietly(this.getContentStream());
         }
 
         return sb.toString();

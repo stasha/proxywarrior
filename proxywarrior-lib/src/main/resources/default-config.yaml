@@ -14,3 +14,4 @@ clientConfig:
   
 listeners:
   - info.stasha.proxywarrior.listeners.LogToDbListener
+  - info.stasha.proxywarrior.listeners.LogToConsoleListener
