@@ -37,7 +37,7 @@ public class LogToConsoleListener extends LoggingListener {
         // do nothing
     }
 
-    private String getHeaders(Executable exec) {
+    String getHeaders(Executable exec) {
         try {
             String headers = (String) exec.execute();
             headers = headers.replaceAll("\\s*---\\s*\n", "");
@@ -50,7 +50,7 @@ public class LogToConsoleListener extends LoggingListener {
         }
     }
 
-    private InputStream getInputStream(Executable exec) {
+    InputStream getInputStream(Executable exec) {
         try {
             Blob blob = (Blob) exec.execute();
             if (blob != null) {

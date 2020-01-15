@@ -1,9 +1,5 @@
 package info.stasha.proxywarrior;
 
-import info.stasha.proxywarrior.BasicHttpResponseWrapper;
-import info.stasha.proxywarrior.Executable;
-import info.stasha.proxywarrior.HttpServletRequestWrapperImpl;
-import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.CommonConfig;
 import info.stasha.proxywarrior.config.Model;
 import java.io.BufferedInputStream;
@@ -47,6 +43,9 @@ public class Utils {
 
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("_\\[(.*?)\\]_");
 
+    public Utils() {
+    }
+
     /**
      * Returns value if it is not null.<br>
      * If value is null, searches value on parent.<br>
@@ -89,9 +88,10 @@ public class Utils {
         try {
             return (T) Class.forName(cls).newInstance();
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-            LOGGER.error("Failed to create new instance from " + cls, ex);
+            String msg = "Failed to create new instance from " + cls;
+            LOGGER.error(msg, ex);
+            throw new ProxyWarriorException(msg, ex);
         }
-        return null;
     }
 
     /**
