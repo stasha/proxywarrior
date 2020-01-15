@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import static java.lang.System.in;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.Collectors;
@@ -25,20 +23,16 @@ public class LogObject {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogObject.class);
 
     private Long id;
+    private Date time;
     private String type;
     private String url;
     private String proxyUrl;
     private String proxyUri;
     private String status;
-    private Integer code;
     private String method;
-    private String host;
-    private Integer port;
     private String headers;
-    private String content;
     @JsonIgnore
     private InputStream contentStream;
-    private Date time;
 
     public LogObject() {
     }
@@ -91,14 +85,6 @@ public class LogObject {
         this.status = status;
     }
 
-    public Integer getCode() {
-        return code;
-    }
-
-    public void setCode(Integer code) {
-        this.code = code;
-    }
-
     public String getMethod() {
         return method;
     }
@@ -107,36 +93,12 @@ public class LogObject {
         this.method = method;
     }
 
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public Integer getPort() {
-        return port;
-    }
-
-    public void setPort(Integer port) {
-        this.port = port;
-    }
-
     public String getHeaders() {
         return headers;
     }
 
     public void setHeaders(String headers) {
         this.headers = headers;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
     }
 
     public InputStream getContentStream() {
@@ -179,25 +141,12 @@ public class LogObject {
         if (this.getStatus() != null) {
             sb.append("status: ").append(this.getStatus()).append("\n");
         }
-        if (this.getCode() != null) {
-            sb.append("code: ").append(this.getCode()).append("\n");
-        }
         if (this.getMethod() != null) {
             sb.append("method: ").append(this.getMethod()).append("\n");
-        }
-        if (this.getHost() != null) {
-            sb.append("host: ").append(this.getHost()).append("\n");
-        }
-        if (this.getPort() != null) {
-            sb.append("port: ").append(this.getPort()).append("\n");
         }
         if (this.getHeaders() != null) {
             sb.append("headers: ").append("\n").append(this.getHeaders());
         }
-        if (this.getContent() != null) {
-            sb.append("content: ").append(this.getContent());
-        }
-
         //TODO: FIX STREAMING CONTENT TO CONSOLE
         if (this.getContentStream() != null) {
             sb.append("content: ").append("\n  ").append(
