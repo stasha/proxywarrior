@@ -17,8 +17,6 @@ public class HttpClientConfig {
 
     private static final Logger LOGGER = Logger.getLogger(HttpClientConfig.class.getName());
 
-    private String instance;
-
     @JsonIgnore
     private HttpClient httpClient;
 
@@ -30,15 +28,6 @@ public class HttpClientConfig {
     private Boolean handleRedirects;
 
     public HttpClientConfig() {
-    }
-
-    /**
-     * Returns class instance (used for debugging purposes)
-     *
-     * @return
-     */
-    public String getInstance() {
-        return super.toString();
     }
 
     /**
@@ -184,50 +173,4 @@ public class HttpClientConfig {
             }
         }
     }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 43 * hash + Objects.hashCode(this.connectTimeout);
-        hash = 43 * hash + Objects.hashCode(this.readTimeout);
-        hash = 43 * hash + Objects.hashCode(this.connectionRequestTimeout);
-        hash = 43 * hash + Objects.hashCode(this.maxConnections);
-        hash = 43 * hash + Objects.hashCode(this.useSystemProperties);
-        hash = 43 * hash + Objects.hashCode(this.handleRedirects);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final HttpClientConfig other = (HttpClientConfig) obj;
-        if (!Objects.equals(this.connectTimeout, other.connectTimeout)) {
-            return false;
-        }
-        if (!Objects.equals(this.readTimeout, other.readTimeout)) {
-            return false;
-        }
-        if (!Objects.equals(this.connectionRequestTimeout, other.connectionRequestTimeout)) {
-            return false;
-        }
-        if (!Objects.equals(this.maxConnections, other.maxConnections)) {
-            return false;
-        }
-        if (!Objects.equals(this.useSystemProperties, other.useSystemProperties)) {
-            return false;
-        }
-        if (!Objects.equals(this.handleRedirects, other.handleRedirects)) {
-            return false;
-        }
-        return true;
-    }
-
 }

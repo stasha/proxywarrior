@@ -29,6 +29,18 @@ public class LogToDbListener extends LoggingListener {
 
     private ProxyWarrior proxyWarrior;
 
+    void beginTransaction() {
+        Base.openTransaction();
+    }
+
+    void commitTransaction() {
+        Base.commitTransaction();
+    }
+
+    void rollbackTransaction() {
+        Base.rollbackTransaction();
+    }
+
     /**
      * Executes code inside begin/commit/rollback transaction.
      *
@@ -38,15 +50,11 @@ public class LogToDbListener extends LoggingListener {
      */
     public void runInTrunsaction(Metadata metadata, String action, Executable runnable) {
         try {
-            try {
-                Base.openTransaction();
-                runnable.execute();
-                Base.commitTransaction();
-            } catch (Exception ex) {
-                Base.rollbackTransaction();
-                throw ex;
-            }
+            beginTransaction();
+            runnable.execute();
+            commitTransaction();
         } catch (Exception ex) {
+            rollbackTransaction();
             String msg = action + " failed to be saved into DB.";
             LOGGER.error(msg, ex);
             throw new ProxyWarriorException(msg, ex);
