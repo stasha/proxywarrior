@@ -1,9 +1,9 @@
 package info.stasha.proxywarrior.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import info.stasha.proxywarrior.ProxyWarriorException;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.http.client.HttpClient;
@@ -160,17 +160,12 @@ public class HttpClientConfig {
      * Closes HttpClient.
      */
     public void dispose() {
-        if (httpClient instanceof Closeable) {
-            try {
-                ((Closeable) httpClient).close();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Failed to close http client while disposing request");
-            }
-        } else {
-            //Older releases require we do this:
-            if (httpClient != null) {
-                httpClient.getConnectionManager().shutdown();
-            }
+        try {
+            ((Closeable) httpClient).close();
+        } catch (IOException e) {
+            String msg = "Failed to close http client";
+            LOGGER.log(Level.SEVERE, msg);
+            throw new ProxyWarriorException(msg, e);
         }
     }
 }

@@ -16,7 +16,6 @@ import org.apache.http.HttpRequest;
  */
 public class Metadata {
 
-    private DataSource dataSource;
     private final long id;
     private String fullUrl;
     private String proxyUrl;
@@ -47,24 +46,6 @@ public class Metadata {
      */
     public long getId() {
         return id;
-    }
-
-    /**
-     * Returns dataSource.
-     *
-     * @return
-     */
-    public DataSource getDataSource() {
-        return dataSource;
-    }
-
-    /**
-     * Sets dataSource.
-     *
-     * @param dataSource
-     */
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
     }
 
     /**
@@ -228,24 +209,4 @@ public class Metadata {
     public void setProxyResponse(BasicHttpResponseWrapper proxyResponse) {
         this.proxyResponse = proxyResponse;
     }
-
-    /**
-     * Sets proxywarrior instance.
-     *
-     * @param proxywarrior
-     */
-    public void setProxywarrior(ProxyWarrior proxywarrior) {
-        this.proxywarrior = proxywarrior;
-    }
-
-    /**
-     * Sends request using HttpClient.
-     *
-     * @throws ServletException
-     * @throws IOException
-     */
-    public void send() throws ServletException, IOException {
-        proxywarrior.service(this.httpServletRequest, this.httpServletResponse);
-    }
-
 }

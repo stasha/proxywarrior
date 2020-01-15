@@ -464,8 +464,6 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         REQUEST_METADATA.set(metadata);
 
-        metadata.setDataSource(this.dataSource);
-
         String localAddress = htReq.getLocalAddr();
         int localPort = htReq.getLocalPort();
         String reqAddress = htReq.getRemoteAddr();
