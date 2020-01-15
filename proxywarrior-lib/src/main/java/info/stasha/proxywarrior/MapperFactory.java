@@ -9,9 +9,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
  */
 public class MapperFactory {
 
-    public MapperFactory() {
-    }
-
     private static ObjectMapper yamlMapper;
     private static ObjectMapper jsonMapper;
     private static ObjectMapper xmlMapper;
