@@ -4,6 +4,13 @@ id: default-configuration
 url: "*"
 autoProxy: true
 
+logging:
+  enabled: true
+  httpRequestContent: true
+  proxyRequestContent: true
+  proxyResponseContent: true
+  httpResponseContent: true
+
 clientConfig:
   connectTimeout: -1
   connectionRequestTimeout: -1

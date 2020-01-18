@@ -504,7 +504,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
             }
 
             if (matched) {
-                metadata.setResponse(resp);
+                metadata.setResponseConfig(resp);
                 resp.setParent(this);
                 return resp;
             }

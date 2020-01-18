@@ -8,6 +8,7 @@ import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.Utils;
+import info.stasha.proxywarrior.config.logging.Logging;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
@@ -93,10 +94,16 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void afterHttpRequest(Metadata metadata) {
+        Logging logging = metadata.getRequestConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
+        boolean contentLogging = Boolean.TRUE.equals(logging.getHttpRequestContent());
 
         long id = getId(metadata);
         HttpServletRequest req = metadata.getHttpServletRequest();
-        InputStream content = Utils.getContent(req);
+        InputStream content = contentLogging ? Utils.getContent(req) : null;
         Utils.getHeaders(req);
 
         runInTrunsaction(metadata, "After http request", () -> {
@@ -123,8 +130,10 @@ public class LogToDbListener extends LoggingListener {
             return null;
         });
 
-        Blob blob = (Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id);
-        Utils.setEntity(req, content, blob);
+        if (contentLogging) {
+            Blob blob = (Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id);
+            Utils.setEntity(req, content, blob);
+        }
 
     }
 
@@ -135,8 +144,15 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void beforeProxyRequest(Metadata metadata) {
+        Logging logging = metadata.getRequestConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
+        boolean contentLogging = Boolean.TRUE.equals(logging.getProxyRequestContent());
+
         long id = getId(metadata);
-        InputStream content = Utils.getContent(metadata.getProxyRequest());
+        InputStream content = contentLogging ? Utils.getContent(metadata.getProxyRequest()) : null;
 
         Utils.getHeaders(metadata.getProxyRequest());
 
@@ -155,15 +171,25 @@ public class LogToDbListener extends LoggingListener {
             return null;
         });
 
-        Blob blob = (Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id);
-        Utils.setEntity(metadata.getProxyRequest(), content, blob);
+        if (contentLogging) {
+            Blob blob = (Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id);
+            Utils.setEntity(metadata.getProxyRequest(), content, blob);
+        }
     }
 
     @Override
     public void afterProxyResponse(Metadata metadata) {
+        Logging logging = metadata.getResponseConfig().getLogging();
+
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
+        boolean contentLogging = Boolean.TRUE.equals(logging.getProxyResponseContent());
+
         long id = getId(metadata);
         BasicHttpResponseWrapper resp = metadata.getProxyResponse();
-        InputStream content = Utils.getContent(resp);
+        InputStream content = contentLogging ? Utils.getContent(resp) : null;
 
         runInTrunsaction(metadata, "After proxy response", () -> {
 
@@ -185,15 +211,24 @@ public class LogToDbListener extends LoggingListener {
             return null;
         });
 
-        Blob blob = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id);
-        Utils.setEntity(resp, content, blob);
+        if (contentLogging) {
+            Blob blob = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id);
+            Utils.setEntity(resp, content, blob);
+        }
     }
 
     @Override
     public void beforeHttpResponse(Metadata metadata) {
+        Logging logging = metadata.getResponseConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
+        boolean contentLogging = Boolean.TRUE.equals(logging.getHttpResponseContent());
+
         long id = getId(metadata);
         BasicHttpResponseWrapper resp = metadata.getProxyResponse();
-        InputStream content = Utils.getContent(resp);
+        InputStream content = contentLogging ? Utils.getContent(resp) : null;
 
         runInTrunsaction(metadata, "Before http response", () -> {
 
@@ -211,8 +246,15 @@ public class LogToDbListener extends LoggingListener {
             return null;
         });
 
-        Blob blob = (Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id);
-        Utils.setEntity(resp, content, blob);
+        if (contentLogging) {
+            Blob blob = (Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id);
+            Utils.setEntity(resp, content, blob);
+        }
+    }
+
+    @Override
+    public void afterHttpResponse(Metadata metadata) {
+
     }
 
     @Override

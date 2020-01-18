@@ -345,9 +345,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         requestConfig.getListeners().fire(ProxyAction.BEFORE_PROXY_REQUEST, metadata);
 
         BasicHttpResponseWrapper proxyResponse = new BasicHttpResponseWrapper(super.doExecute(servletRequest, servletResponse, proxyRequest));
-
         metadata.setProxyResponse(proxyResponse);
-        requestConfig.getListeners().fire(ProxyAction.AFTER_PROXY_RESPONSE, metadata);
 
         return proxyResponse;
     }
@@ -365,7 +363,10 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         super.service(servletRequest, servletResponse);
 
         Metadata metadata = REQUEST_METADATA.get();
-        metadata.setResponse(metadata.getRequestConfig().getResponse(metadata));
+        metadata.setResponseConfig(metadata.getRequestConfig().getResponse(metadata));
+        
+        metadata.getRequestConfig().getListeners().fire(ProxyAction.AFTER_PROXY_RESPONSE, metadata);
+        
         ResponseConfig responseConfig = metadata.getResponseConfig();
         BasicHttpResponseWrapper proxyResponse = (BasicHttpResponseWrapper) metadata.getProxyResponse();
         HttpEntity oldEntity = null;

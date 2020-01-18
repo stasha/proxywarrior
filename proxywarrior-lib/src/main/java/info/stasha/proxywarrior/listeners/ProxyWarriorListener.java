@@ -68,4 +68,12 @@ public interface ProxyWarriorListener {
      * @param metadata
      */
     void beforeHttpResponse(Metadata metadata);
+
+    /**
+     * Method invoked after HttpServletResponse is returned to client. In this
+     * stage it doesn't matter if request data are changed or not.
+     *
+     * @param metadata
+     */
+    void afterHttpResponse(Metadata metadata);
 }

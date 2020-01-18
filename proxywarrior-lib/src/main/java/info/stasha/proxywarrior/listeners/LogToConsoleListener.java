@@ -7,6 +7,7 @@ import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.Utils;
 import info.stasha.proxywarrior.config.Metadata;
+import info.stasha.proxywarrior.config.logging.Logging;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.util.Date;
@@ -74,6 +75,11 @@ public class LogToConsoleListener extends LoggingListener {
 
     @Override
     public void afterHttpRequest(Metadata metadata) {
+        Logging logging = metadata.getRequestConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
         long id = metadata.getId();
         LogObject lo = getLogObject("REQUEST", id);
         lo.setUrl(metadata.getFullUrl());
@@ -81,7 +87,10 @@ public class LogToConsoleListener extends LoggingListener {
         lo.setProxyUri(metadata.getProxyUri());
         lo.setMethod(metadata.getHttpServletRequest().getMethod());
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletRequest()))));
-        lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id))));
+
+        if (logging.getHttpRequestContent()) {
+            lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id))));
+        }
 
         LOGGER.info(lo.toString());
     }
@@ -93,34 +102,62 @@ public class LogToConsoleListener extends LoggingListener {
 
     @Override
     public void beforeProxyRequest(Metadata metadata) {
+        Logging logging = metadata.getRequestConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
         long id = metadata.getId();
         LogObject lo = getLogObject("PROXY REQUEST", id);
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest()))));
-        lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id))));
+
+        if (logging.getProxyRequestContent()) {
+            lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id))));
+        }
 
         LOGGER.info(lo.toString());
     }
 
     @Override
     public void afterProxyResponse(Metadata metadata) {
+        Logging logging = metadata.getResponseConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
         long id = metadata.getId();
         LogObject lo = getLogObject("PROXY RESPONSE", id);
-//        lo.setCode(metadata.getProxyResponse().getStatusLine().getStatusCode());
         lo.setStatus(metadata.getProxyResponse().getStatusLine().toString());
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse()))));
-        lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id))));
+
+        if (logging.getProxyResponseContent()) {
+            lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id))));
+        }
 
         LOGGER.info(lo.toString());
     }
 
     @Override
     public void beforeHttpResponse(Metadata metadata) {
+        Logging logging = metadata.getResponseConfig().getLogging();
+        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+            return;
+        }
+
         long id = metadata.getId();
         LogObject lo = getLogObject("RESPONSE", id);
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse()))));
-        lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id))));
+
+        if (logging.getHttpResponseContent()) {
+            lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id))));
+        }
 
         LOGGER.info(lo.toString());
+    }
+
+    @Override
+    public void afterHttpResponse(Metadata metadata) {
+        // do nothing
     }
 
 }

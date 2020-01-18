@@ -2,6 +2,7 @@ package info.stasha.proxywarrior.config;
 
 import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import info.stasha.proxywarrior.config.logging.Logging;
 import info.stasha.proxywarrior.listeners.Listeners;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,8 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private Map<String, List<String>> headers;
 
     private Listeners listeners;
+
+    private Logging logging;
 
     private String model;
     @JsonIgnore
@@ -291,6 +294,24 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void setListeners(Listeners listeners) {
         this.listeners = listeners;
+    }
+
+    /**
+     * Returns logging configuration.
+     *
+     * @return
+     */
+    public Logging getLogging() {
+        return Utils.getValue(logging, this, getParent(), () -> getParent().getLogging(), null);
+    }
+
+    /**
+     * Sets logging configuration.
+     *
+     * @param logging
+     */
+    public void setLogging(Logging logging) {
+        this.logging = logging;
     }
 
     /**

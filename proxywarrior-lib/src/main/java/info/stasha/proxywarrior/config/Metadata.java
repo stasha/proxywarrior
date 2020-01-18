@@ -2,11 +2,8 @@ package info.stasha.proxywarrior.config;
 
 import info.stasha.proxywarrior.BasicHttpResponseWrapper;
 import info.stasha.proxywarrior.ProxyWarrior;
-import java.io.IOException;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.sql.DataSource;
 import org.apache.http.HttpRequest;
 
 /**
@@ -21,7 +18,7 @@ public class Metadata {
     private String proxyUrl;
     private String proxyUri;
     private RequestConfig requestConfig;
-    private ResponseConfig response;
+    private ResponseConfig responseConfig;
     private HttpServletRequest httpServletRequest;
     private HttpServletResponse httpServletResponse;
     private HttpRequest proxyRequest;
@@ -126,7 +123,7 @@ public class Metadata {
      * @return
      */
     public ResponseConfig getResponseConfig() {
-        return response;
+        return responseConfig;
     }
 
     /**
@@ -134,8 +131,8 @@ public class Metadata {
      *
      * @param responseConfig
      */
-    public void setResponse(ResponseConfig responseConfig) {
-        this.response = responseConfig;
+    public void setResponseConfig(ResponseConfig responseConfig) {
+        this.responseConfig = responseConfig;
     }
 
     /**
@@ -193,7 +190,7 @@ public class Metadata {
     }
 
     /**
-     * Returns HttpResponse (HttpClient response)
+     * Returns HttpResponse (HttpClient responseConfig)
      *
      * @return
      */
@@ -202,7 +199,7 @@ public class Metadata {
     }
 
     /**
-     * Sets HttpResponse (HttpClient response)
+     * Sets HttpResponse (HttpClient responseConfig)
      *
      * @param proxyResponse
      */

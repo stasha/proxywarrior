@@ -80,6 +80,9 @@ requests:
         # If order was switched from less specific to more specific, more 
         # specific response would never be hit.
       - method: GET
+        logging:
+            # completely disables logging for this response 
+            enabled: false
         responseHeader: x-get-header
         text: my get text with header response
         
@@ -102,6 +105,16 @@ requests:
         # 
         # it will return specified text instead of original response
       - method: PUT
+        logging:
+          enabled: true
+          # disables http servlet request content logging for this response
+          httpRequestContent: false
+          # disables proxy request content logging for this response
+          proxyRequestContent: false
+          # disables proxy response content logging for this response
+          proxyResponseContent: false
+          # disables http servlet response content logging for this response
+          httpResponseContent: false
         text: my put text response
         
         # response will be matched only if
