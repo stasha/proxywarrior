@@ -3,7 +3,8 @@ package info.stasha.proxywarrior.config;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import java.io.IOException;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
@@ -12,12 +13,14 @@ import org.mockito.Mockito;
  */
 public class HttpClientConfigTest {
 
-    @Test(expected = ProxyWarriorException.class)
+    @Test
     public void httpClientCloseExceptionTest() throws IOException {
-        CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
-        Mockito.doThrow(IOException.class).when(client).close();
-        HttpClientConfig cc = new HttpClientConfig();
-        cc.setHttpClient(client);
-        cc.dispose();
+        Assertions.assertThrows(ProxyWarriorException.class, () -> {
+            CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
+            Mockito.doThrow(IOException.class).when(client).close();
+            HttpClientConfig cc = new HttpClientConfig();
+            cc.setHttpClient(client);
+            cc.dispose();
+        });
     }
 }

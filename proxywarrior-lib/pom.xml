@@ -9,23 +9,4 @@
     
     <artifactId>proxywarrior-lib</artifactId>
     <packaging>jar</packaging>
-    
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.javalite</groupId>
-                <artifactId>activejdbc-instrumentation</artifactId>
-                <version>2.3.1-j8</version>
-                <executions>
-                    <execution>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>instrument</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-    
 </project>

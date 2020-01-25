@@ -8,8 +8,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  *
@@ -31,7 +31,7 @@ public class ProxyWarriorNoConfigTest extends AbstractTest {
     @Path("/test")
     public String passThroughProxyEndpoint(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
         Metadata metadata = (Metadata) req.getAttribute("proxy");
-        Assert.assertNotNull("Request should have proxy attribute", metadata);
+        Assertions.assertNotNull(metadata, "Request should have proxy attribute");
 
         resp.setHeader("proxied", "true");
 
@@ -42,8 +42,8 @@ public class ProxyWarriorNoConfigTest extends AbstractTest {
     @Request(url = "/test")
     public void passThroughProxyTest(Response resp) {
         String proxiedHeaderValue = resp.getHeaderString("proxied");
-        Assert.assertEquals("Proxied header should equal", "true", proxiedHeaderValue);
-        Assert.assertEquals("Returned string should equal", "get test", resp.readEntity(String.class));
+        Assertions.assertEquals("true", proxiedHeaderValue, "Proxied header should equal");
+        Assertions.assertEquals("get test", resp.readEntity(String.class), "Returned string should equal");
     }
 
 }

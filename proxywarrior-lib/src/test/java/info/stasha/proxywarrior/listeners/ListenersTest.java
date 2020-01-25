@@ -1,7 +1,7 @@
 package info.stasha.proxywarrior.listeners;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  *
@@ -12,14 +12,14 @@ public class ListenersTest {
     @Test
     public void removeListenerTest() {
         Listeners l = new Listeners();
-        Assert.assertFalse("No listeners should be added", l.add(null));
+        Assertions.assertFalse(l.add(null), "No listeners should be added");
 
         l.add("info.stasha.proxywarrior.listeners.LogToDbListener");
 
-        Assert.assertEquals("There should be 1 listener", 1, l.size());
+        Assertions.assertEquals(1, l.size(), "There should be 1 listener");
 
         l.remove("info.stasha.proxywarrior.listeners.LogToDbListener");
-        Assert.assertEquals("There should be 0 listeners", 0, l.size());
+        Assertions.assertEquals(0, l.size(), "There should be 0 listeners");
 
     }
 

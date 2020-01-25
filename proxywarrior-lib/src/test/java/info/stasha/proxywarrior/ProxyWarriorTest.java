@@ -1,7 +1,6 @@
 package info.stasha.proxywarrior;
 
 import info.stasha.proxywarrior.config.Metadata;
-import info.stasha.proxywarrior.config.TestModel;
 import info.stasha.testosterone.TestResponseBuilder.TestResponse;
 import info.stasha.testosterone.annotation.Request;
 import javax.servlet.http.HttpServletRequest;
@@ -17,8 +16,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  *
@@ -30,12 +29,12 @@ public class ProxyWarriorTest extends AbstractTest {
     @Path("/proxy/test")
     public String passThroughProxyEndpoint(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
         Metadata proxyRequest = (Metadata) req.getAttribute("proxy");
-        Assert.assertNotNull("Request should have proxy attribute", proxyRequest);
-        
+        Assertions.assertNotNull(proxyRequest, "Request should have proxy attribute");
+
         // headers are not touched for passthrough requests
-        Assert.assertNull("Model header should be null", req.getHeader("xtra"));
-        Assert.assertNull("Model header should be null", req.getHeader("Attribute-Header"));
-        
+        Assertions.assertNull(req.getHeader("xtra"), "Model header should be null");
+        Assertions.assertNull(req.getHeader("Attribute-Header"), "Model header should be null");
+
         resp.setHeader("proxied", "true");
 
         return "get test";
@@ -45,8 +44,8 @@ public class ProxyWarriorTest extends AbstractTest {
     @Request(url = "/test")
     public void passThroughProxyTest(Response resp) {
         String proxiedHeaderValue = resp.getHeaderString("proxied");
-        Assert.assertEquals("Proxied header should equal", "true", proxiedHeaderValue);
-        Assert.assertEquals("Returned string should equal", "get test", resp.readEntity(String.class));
+        Assertions.assertEquals("true", proxiedHeaderValue, "Proxied header should equal");
+        Assertions.assertEquals("get test", resp.readEntity(String.class), "Returned string should equal");
     }
 
     @GET
@@ -60,10 +59,10 @@ public class ProxyWarriorTest extends AbstractTest {
     public void testFileResponse(Response resp) {
         String addIfPresent = resp.getHeaderString("add-if-not-present");
         String keepExisting = resp.getHeaderString("keep-existing");
-        Assert.assertEquals("Header value should equal", "add-if-not-present-original", addIfPresent);
-        Assert.assertEquals("Header value should equal", "keep-existing-original", keepExisting);
-        Assert.assertNull("Header should be null", resp.getHeaderString("delete-existing"));
-        Assert.assertEquals("Response text should equal", "my file content", resp.readEntity(String.class));
+        Assertions.assertEquals("add-if-not-present-original", addIfPresent, "Header value should equal");
+        Assertions.assertEquals("keep-existing-original", keepExisting, "Header value should equal");
+        Assertions.assertNull(resp.getHeaderString("delete-existing"), "Header should be null");
+        Assertions.assertEquals("my file content", resp.readEntity(String.class), "Response text should equal");
     }
 
     @GET
@@ -75,7 +74,7 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/textresponse")
     public void testTextResponse(Response resp) {
-        Assert.assertEquals("Response text should equal", "my text from yaml", resp.readEntity(String.class));
+        Assertions.assertEquals("my text from yaml", resp.readEntity(String.class), "Response text should equal");
     }
 
     @GET
@@ -90,19 +89,19 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse")
     public void testGetTextResponse(Response resp) {
-        Assert.assertEquals("Response text should equal", "my get text response", resp.readEntity(String.class));
+        Assertions.assertEquals("my get text response", resp.readEntity(String.class), "Response text should equal");
     }
 
     @Test
     @Request(url = "/methodtextresponse?setHeader=true")
     public void testGetWithHeaderTextResponse(Response resp) {
-        Assert.assertEquals("Response text should equal", "my get text with header response", resp.readEntity(String.class));
+        Assertions.assertEquals("my get text with header response", resp.readEntity(String.class), "Response text should equal");
     }
 
     @POST
     @Path("/proxy/methodtextresponse")
     public String getPostTextResponse(String text) {
-        Assert.assertEquals("Text argument should equal", "post text", text);
+        Assertions.assertEquals("post text", text, "Text argument should equal");
         return "must return some text";
     }
 
@@ -111,13 +110,13 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse", method = "POST", entity = "entityText")
     public void testPostTextResponse(TestResponse resp) {
-        Assert.assertEquals("Response text should equal", "my post text response", resp.getResponse().readEntity(String.class));
+        Assertions.assertEquals("my post text response", resp.getResponse().readEntity(String.class), "Response text should equal");
     }
 
     @PUT
     @Path("/proxy/methodtextresponse")
     public String getPutTextResponse(String text) {
-        Assert.assertEquals("Text argument should equal", "put text", text);
+        Assertions.assertEquals("put text", text, "Text argument should equal");
         return "must return some text";
     }
 
@@ -126,13 +125,13 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse", method = "PUT", entity = "entityText2")
     public void testPutTextResponse(Response resp) {
-        Assert.assertEquals("Response text should equal", "my put text response", resp.readEntity(String.class));
+        Assertions.assertEquals("my put text response", resp.readEntity(String.class), "Response text should equal");
     }
 
     @DELETE
     @Path("/proxy/methodtextresponse")
     public String getDeleteTextResponse(@HeaderParam("x-delete-request") boolean header, @Context HttpServletResponse resp) {
-        Assert.assertTrue("Header should be true", header);
+        Assertions.assertTrue(header, "Header should be true");
         resp.setHeader("x-delete-response", "true");
         return "must return some text";
     }
@@ -140,8 +139,8 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse", method = "DELETE", headerParams = "x-delete-request, true")
     public void testDeleteTextResponse(Response resp) {
-        Assert.assertNotNull("Response header should not be null", resp.getHeaderString("x-delete-response"));
-        Assert.assertEquals("Response text should equal", "my delete text response", resp.readEntity(String.class));
+        Assertions.assertNotNull(resp.getHeaderString("x-delete-response"), "Response header should not be null");
+        Assertions.assertEquals("my delete text response", resp.readEntity(String.class), "Response text should equal");
     }
 
     @HEAD
@@ -153,13 +152,13 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse", method = "HEAD")
     public void testHeadTextResponse(Response resp) {
-        Assert.assertNotNull("Response header should not be null", resp.getHeaderString("x-default-header"));
+        Assertions.assertNotNull(resp.getHeaderString("x-default-header"), "Response header should not be null");
     }
 
     @Test
     @Request(url = "/methodtextresponse", method = "HEAD", headerParams = "x-multy-method, true")
     public void testHeadOptionsTextResponse(Response resp) {
-        Assert.assertNotNull("Response header should not be null", resp.getHeaderString("x-head-options-header"));
+        Assertions.assertNotNull(resp.getHeaderString("x-head-options-header"), "Response header should not be null");
     }
 
     @OPTIONS
@@ -171,14 +170,14 @@ public class ProxyWarriorTest extends AbstractTest {
     @Test
     @Request(url = "/methodtextresponse", method = "OPTIONS")
     public void testOptionsTextResponse(Response resp) {
-        Assert.assertNotNull("Response header should not be null", resp.getHeaderString("x-default-header"));
-        Assert.assertEquals("Response text should equal", "my default text response", resp.readEntity(String.class));
+        Assertions.assertNotNull(resp.getHeaderString("x-default-header"), "Response header should not be null");
+        Assertions.assertEquals("my default text response", resp.readEntity(String.class), "Response text should equal");
     }
 
     @Test
     @Request(url = "/methodtextresponse", method = "OPTIONS", headerParams = "x-multy-method, true")
     public void testOptionsHeadTextResponse(Response resp) {
-        Assert.assertNotNull("Response header should not be null", resp.getHeaderString("x-head-options-header"));
-        Assert.assertEquals("Response text should equal", "my head|options text response", resp.readEntity(String.class));
+        Assertions.assertNotNull(resp.getHeaderString("x-head-options-header"), "Response header should not be null");
+        Assertions.assertEquals("my head|options text response", resp.readEntity(String.class), "Response text should equal");
     }
 }

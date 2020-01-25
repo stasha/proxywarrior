@@ -4,12 +4,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import info.stasha.testosterone.DbConfig;
 import info.stasha.testosterone.annotation.Configuration;
 import info.stasha.testosterone.db.HsqlDbConfig;
-import info.stasha.testosterone.jersey.junit4.Testosterone;
-import info.stasha.testosterone.junit4.TestosteroneRunner;
+import info.stasha.testosterone.jersey.junit5.Testosterone;
 import info.stasha.testosterone.servlet.Filter;
 import info.stasha.testosterone.servlet.ServletContainerConfig;
 import org.junit.Assert;
-import org.junit.runner.RunWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.atLeast;
@@ -20,7 +18,6 @@ import org.slf4j.LoggerFactory;
  *
  * @author stasha
  */
-@RunWith(TestosteroneRunner.class)
 @Configuration(runDb = true, dbConfig = HsqlDbConfig.class)
 public abstract class AbstractTest implements Testosterone {
 

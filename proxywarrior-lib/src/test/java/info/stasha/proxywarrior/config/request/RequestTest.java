@@ -2,9 +2,9 @@ package info.stasha.proxywarrior.config.request;
 
 import info.stasha.proxywarrior.config.RequestConfig;
 import javax.servlet.http.HttpServletRequest;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
@@ -19,7 +19,7 @@ public class RequestTest {
     private RequestConfig requestConfig;
     private HttpServletRequest req;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         requestConfig = new RequestConfig();
         req = Mockito.mock(HttpServletRequest.class);
@@ -37,7 +37,7 @@ public class RequestTest {
 
         String url = requestConfig.getProxyUrl(req);
 
-        Assert.assertEquals("Url's should equal", URL, url);
+        Assertions.assertEquals(URL, url, "Url's should equal");
     }
 
     @Test
@@ -47,7 +47,7 @@ public class RequestTest {
 
         String url = requestConfig.getProxyUrl(req);
 
-        Assert.assertEquals("Url's should equal", URL, url);
+        Assertions.assertEquals(URL, url, "Url's should equal");
     }
 
     @Test
@@ -59,7 +59,7 @@ public class RequestTest {
 
         String url = requestConfig.getProxyUrl(req);
 
-        Assert.assertEquals("Url's should equal", URL, url);
+        Assertions.assertEquals(URL, url, "Url's should equal");
     }
 
     @Test
@@ -68,7 +68,7 @@ public class RequestTest {
         requestConfig.setTargetUri("*");
 
         String url = requestConfig.getProxyUrl(req);
-        Assert.assertEquals("Url's should equal", URL, url);
+        Assertions.assertEquals(URL, url, "Url's should equal");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class RequestTest {
         requestConfig.setTargetUri("*");
 
         String url = requestConfig.getProxyUrl(req);
-        Assert.assertEquals("Url's should equal", URL, url);
+        Assertions.assertEquals(URL, url, "Url's should equal");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RequestTest {
 
         String url = requestConfig.getProxyUrl(req);
 
-        Assert.assertEquals("Url's should equal", "http://www.test.com:8910/context/test?name=1&id=2", url);
+        Assertions.assertEquals("http://www.test.com:8910/context/test?name=1&id=2", url, "Url's should equal");
     }
 
     @Test
@@ -98,7 +98,7 @@ public class RequestTest {
         requestConfig.setTargetUri("*");
 
         String uri = requestConfig.getProxyUri(req);
-        Assert.assertEquals("Url's should equal", URI, uri);
+        Assertions.assertEquals(URI, uri, "Url's should equal");
     }
 
 }
