@@ -35,6 +35,10 @@ headers:
     - keep-existing-original
   delete-existing: 
     - deleteheader
+    
+#cache:
+#  enabled: true
+#  expirationTime: 10
 
 
 requests:

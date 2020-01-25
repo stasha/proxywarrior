@@ -108,7 +108,7 @@ public class ResponseConfig extends CommonConfig<ResponseConfig> {
      * @param responseHeader
      */
     public void setResponseHeader(String responseHeader) {
-        this.responseHeader =  responseHeader;
+        this.responseHeader = responseHeader;
         this.setResponseHeaderPattern(Pattern.compile(responseHeader));
     }
 

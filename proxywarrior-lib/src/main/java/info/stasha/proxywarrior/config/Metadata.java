@@ -2,9 +2,12 @@ package info.stasha.proxywarrior.config;
 
 import info.stasha.proxywarrior.BasicHttpResponseWrapper;
 import info.stasha.proxywarrior.ProxyWarrior;
+import java.sql.Timestamp;
+import java.util.Calendar;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.http.HttpRequest;
+import org.javalite.activejdbc.Base;
 
 /**
  * Central DTO used in all proxywarrior actions.
@@ -13,8 +16,9 @@ import org.apache.http.HttpRequest;
  */
 public class Metadata {
 
-    private final long id;
+    private long id;
     private String fullUrl;
+    private String path;
     private String proxyUrl;
     private String proxyUri;
     private RequestConfig requestConfig;
@@ -23,6 +27,7 @@ public class Metadata {
     private HttpServletResponse httpServletResponse;
     private HttpRequest proxyRequest;
     private BasicHttpResponseWrapper proxyResponse;
+    private CacheResult cacheResult;
     private ProxyWarrior proxywarrior;
 
     /**
@@ -61,6 +66,25 @@ public class Metadata {
      */
     public void setFullUrl(String fullUrl) {
         this.fullUrl = fullUrl;
+    }
+
+    /**
+     * Returns URL path. The path is calculated from end of context till the url
+     * end including query params.
+     *
+     * @return
+     */
+    public String getPath() {
+        return path;
+    }
+
+    /**
+     * Sets request path.
+     *
+     * @param path
+     */
+    public void setPath(String path) {
+        this.path = path;
     }
 
     /**
@@ -205,5 +229,98 @@ public class Metadata {
      */
     public void setProxyResponse(BasicHttpResponseWrapper proxyResponse) {
         this.proxyResponse = proxyResponse;
+    }
+
+    public CacheResult getCacheResult() {
+        return cacheResult;
+    }
+
+    public void setCacheResult(CacheResult cacheResult) {
+        this.cacheResult = cacheResult;
+    }
+
+    public static class CacheResult {
+
+        private Timestamp ts;
+        private Long id;
+        private String method;
+        private String path;
+
+        public Long getId() {
+            return id;
+        }
+
+    }
+
+    /**
+     * If DB record needs to be inserted/updated:<br>
+     * a. returns -1 if record needs to be inserted into DB<br>
+     * b. returns ID of the record that needs to be updated<br>
+     * c. returns null if record should not be inserted/updated<br>
+     *
+     * Insert/update record:<br>
+     * a. if cache is enabled<br>
+     * b. if cache is disabled but expiration time is greater then 0<br>
+     * c. if logging is enabled<br>
+     *
+     * @param config
+     * @return
+     */
+    public Long shouldUpdateDbRecord(CommonConfig config) {
+        Cache cache = config.getCache();
+        Logging logging = config.getLogging();
+
+        if (cacheResult == null) {
+            cacheResult = new CacheResult();
+
+            if (cache.getExpirationTime() > 0) {
+                Base.find("SELECT REQUEST_ID, REQUEST_TIME, REQUEST_METHOD, REQUEST_PATH FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND REQUEST_METHOD = ?",
+                        this.getRequestConfig().getId(), this.getPath(), this.getHttpServletRequest().getMethod()).with((row) -> {
+                    cacheResult.id = (Long) row.get("REQUEST_ID");
+                    cacheResult.ts = (Timestamp) row.get("REQUEST_TIME");
+                    cacheResult.method = (String) row.get("REQUEST_METHOD");
+                    cacheResult.path = (String) row.get("REQUEST_PATH");
+                    return false;
+                });
+            }
+        }
+
+        if (cacheResult.id != null) {
+            this.id = cacheResult.id;
+        }
+
+        // 1. if cache is enabled
+        //      a. insert cache if there is no record
+        //      b. update cache if cache expired
+        if (Boolean.TRUE.equals(cache.getEnabled())) {
+            if (cacheResult.ts == null) {
+                return new Long(-1);
+            } else {
+                Calendar cal = Calendar.getInstance();
+                // setting request time + expiration time as future time
+                cal.setTimeInMillis(cacheResult.ts.getTime() + cache.getExpirationTime() * 10);
+                // in case current time is greater then future time, return false
+                if (Calendar.getInstance().after(cal)) {
+                    return cacheResult.id;
+                }
+            }
+        } // 2. if cache is disabled and expiration time is set
+        //      a. update cache
+        else {
+            if (cache.getExpirationTime() > 0) {
+                if (cacheResult.ts == null) {
+                    return new Long(-1);
+                } else {
+                    return cacheResult.id;
+                }
+            }
+        }
+
+        // 3. if logging is enabled
+        if (logging.getEnabled()) {
+            return new Long(-1);
+        }
+
+        return null;
     }
 }

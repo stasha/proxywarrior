@@ -15,10 +15,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.Map;
 import java.util.Timer;
-import java.util.concurrent.ThreadLocalRandom;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -34,8 +35,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpMessage;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.ProtocolVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.apache.http.util.EntityUtils;
 import org.flywaydb.core.Flyway;
 import org.javalite.activejdbc.Base;
@@ -343,10 +347,30 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         RequestConfig requestConfig = metadata.getRequestConfig();
         overrideHeaders(proxyRequest, (CommonConfig) requestConfig);
         requestConfig.getListeners().fire(ProxyAction.BEFORE_PROXY_REQUEST, metadata);
+        BasicHttpResponseWrapper proxyResponse = null;
 
-        BasicHttpResponseWrapper proxyResponse = new BasicHttpResponseWrapper(super.doExecute(servletRequest, servletResponse, proxyRequest));
+        // if caching is enabled then dont' send request but just return existing from DB
+        Long cacheId = metadata.getCacheResult().getId();
+        if (cacheId != null && cacheId > 0) {
+            String statusLine = (String) Base.firstCell("SELECT PROXY_RESPONSE_STATUS_LINE FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
+            Blob data = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
+            String heders = (String) Base.firstCell("SELECT PROXY_RESPONSE_HEADERS FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
+            
+            String[] statusData = statusLine.split(" ");
+            String[] protocol = statusData[0].split("/");
+            String[] majorMinor = protocol[1].split("\\.");
+            ProtocolVersion pv = new ProtocolVersion(protocol[0], Integer.parseInt(majorMinor[0]), Integer.parseInt(majorMinor[1]));
+            HttpResponse resp = new BasicHttpResponse(new BasicStatusLine(pv, Integer.parseInt(statusData[1]), statusData[2]));
+            
+            Utils.setEntity(resp, null, data);
+            Utils.setHeaders(resp, MapperFactory.getMapper("yaml").readValue(heders, Map.class));
+            
+            proxyResponse = new BasicHttpResponseWrapper(resp);
+        } else {
+            proxyResponse = new BasicHttpResponseWrapper(super.doExecute(servletRequest, servletResponse, proxyRequest));
+        }
+
         metadata.setProxyResponse(proxyResponse);
-
         return proxyResponse;
     }
 
@@ -364,9 +388,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         Metadata metadata = REQUEST_METADATA.get();
         metadata.setResponseConfig(metadata.getRequestConfig().getResponse(metadata));
-        
+
         metadata.getRequestConfig().getListeners().fire(ProxyAction.AFTER_PROXY_RESPONSE, metadata);
-        
+
         ResponseConfig responseConfig = metadata.getResponseConfig();
         BasicHttpResponseWrapper proxyResponse = (BasicHttpResponseWrapper) metadata.getProxyResponse();
         HttpEntity oldEntity = null;

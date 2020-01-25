@@ -19,6 +19,10 @@ clientConfig:
   readTimeout: -1
   useSystemProperties: true
   
+cache:
+  enabled: false
+  expirationTime: 0
+  
 listeners:
   - info.stasha.proxywarrior.listeners.LogToDbListener
   - info.stasha.proxywarrior.listeners.LogToConsoleListener

@@ -2,7 +2,6 @@ package info.stasha.proxywarrior.config;
 
 import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import info.stasha.proxywarrior.config.logging.Logging;
 import info.stasha.proxywarrior.listeners.Listeners;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +40,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     @JsonIgnore
     private Model modelObject;
     private Map<String, String> properties;
+    private Cache cache;
 
     /**
      * Returns instance information (used for debugging purposes).
@@ -361,6 +361,24 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public Map<String, String> getProperties() {
         return Utils.getMap(properties, getParent() != null ? getParent().getProperties() : null);
+    }
+
+    /**
+     * Returns response cache configuration.
+     *
+     * @return
+     */
+    public Cache getCache() {
+        return Utils.getValue(cache, this, getParent(), () -> getParent().getCache(), null);
+    }
+
+    /**
+     * Sets response cache configuration.
+     *
+     * @param cache
+     */
+    public void setCache(Cache cache) {
+        this.cache = cache;
     }
 
     /**

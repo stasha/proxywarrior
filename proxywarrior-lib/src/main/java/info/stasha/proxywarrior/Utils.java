@@ -292,7 +292,7 @@ public class Utils {
                     if (resp.getEntity() != null) {
                         EntityUtils.consumeQuietly(resp.getEntity());
                     }
-                }
+                } 
                 resp.setEntity(new InputStreamEntity(blob != null ? new BufferedInputStream(blob.getBinaryStream()) : content, getContentLength(resp)));
             }
             return null;

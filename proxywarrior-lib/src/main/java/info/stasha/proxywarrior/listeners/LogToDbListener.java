@@ -8,12 +8,15 @@ import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.Utils;
-import info.stasha.proxywarrior.config.logging.Logging;
+import info.stasha.proxywarrior.config.Logging;
+import info.stasha.proxywarrior.config.RequestConfig;
+import info.stasha.proxywarrior.config.ResponseConfig;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.http.HttpRequest;
 import org.javalite.activejdbc.Base;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,46 +97,59 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void afterHttpRequest(Metadata metadata) {
-        Logging logging = metadata.getRequestConfig().getLogging();
-        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+        RequestConfig rc = metadata.getRequestConfig();
+        Logging logging = rc.getLogging();
+        Long updateRecord = metadata.shouldUpdateDbRecord(rc);
+
+        if (updateRecord == null) {
             return;
         }
 
         boolean contentLogging = Boolean.TRUE.equals(logging.getHttpRequestContent());
-
-        long id = getId(metadata);
         HttpServletRequest req = metadata.getHttpServletRequest();
+        long id = getId(metadata);
         InputStream content = contentLogging ? Utils.getContent(req) : null;
-        Utils.getHeaders(req);
 
         runInTrunsaction(metadata, "After http request", () -> {
+            if (updateRecord == -1) {
+                PreparedStatement ps = Base.startBatch(
+                        "INSERT INTO REQUEST ("
+                        + "REQUEST_ID, "
+                        + "CONFIG_ID, "
+                        + "CACHED, "
+                        + "REQUEST_URL, "
+                        + "REQUEST_PATH, "
+                        + "PROXY_URL, "
+                        + "REQUEST_METHOD, "
+                        + "REQUEST_HEADERS, "
+                        + "REQUEST_CONTENT"
+                        + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-            PreparedStatement ps = Base.startBatch(
-                    "INSERT INTO REQUEST ("
-                    + "REQUEST_ID, "
-                    + "CONFIG_ID, "
-                    + "REQUEST_URL, "
-                    + "PROXY_URL, "
-                    + "REQUEST_METHOD, "
-                    + "REQUEST_HEADERS, "
-                    + "REQUEST_CONTENT"
-                    + ") VALUES (?, ?, ?, ?, ?, ?, ?)");
+                ps.setLong(1, id);
+                ps.setString(2, metadata.getRequestConfig().getId());
+                ps.setBoolean(3, metadata.getRequestConfig().getCache().getExpirationTime() > 0);
+                ps.setString(4, metadata.getFullUrl());
+                ps.setString(5, metadata.getPath());
+                ps.setString(6, metadata.getProxyUrl());
+                ps.setString(7, metadata.getHttpServletRequest().getMethod());
+                ps.setString(8, WRITER.writeValueAsString(Utils.getHeaders(req)));
+                setBlob(ps, 9, content);
+                ps.execute();
 
-            ps.setLong(1, id);
-            ps.setString(2, metadata.getRequestConfig().getId());
-            ps.setString(3, metadata.getFullUrl());
-            ps.setString(4, metadata.getProxyUrl());
-            ps.setString(5, metadata.getHttpServletRequest().getMethod());
-            ps.setString(6, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletRequest())));
-            setBlob(ps, 7, content);
-            ps.execute();
+            } else {
+                PreparedStatement ps = Base.startBatch("UPDATE REQUEST SET REQUEST_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
+
+                ps.setLong(1, updateRecord);
+                ps.execute();
+            }
+
+            if (contentLogging) {
+                Blob blob = (Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id);
+                Utils.setEntity(req, content, blob);
+            }
+
             return null;
         });
-
-        if (contentLogging) {
-            Blob blob = (Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id);
-            Utils.setEntity(req, content, blob);
-        }
 
     }
 
@@ -144,30 +160,38 @@ public class LogToDbListener extends LoggingListener {
 
     @Override
     public void beforeProxyRequest(Metadata metadata) {
-        Logging logging = metadata.getRequestConfig().getLogging();
-        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+        RequestConfig rc = metadata.getRequestConfig();
+        Logging logging = rc.getLogging();
+        Long updateRecord = metadata.shouldUpdateDbRecord(rc);
+
+        if (updateRecord == null) {
             return;
         }
 
         boolean contentLogging = Boolean.TRUE.equals(logging.getProxyRequestContent());
-
+        HttpRequest req = metadata.getProxyRequest();
         long id = getId(metadata);
-        InputStream content = contentLogging ? Utils.getContent(metadata.getProxyRequest()) : null;
-
-        Utils.getHeaders(metadata.getProxyRequest());
+        InputStream content = contentLogging ? Utils.getContent(req) : null;
 
         runInTrunsaction(metadata, "Before proxy request", () -> {
-            PreparedStatement ps = Base.startBatch(
-                    "INSERT INTO PROXY_REQUEST ("
-                    + "REQUEST_ID, "
-                    + "PROXY_REQUEST_HEADERS, "
-                    + "PROXY_REQUEST_CONTENT"
-                    + ") VALUES (?, ?, ?)");
+            if (updateRecord == -1) {
+                PreparedStatement ps = Base.startBatch(
+                        "INSERT INTO PROXY_REQUEST ("
+                        + "REQUEST_ID, "
+                        + "PROXY_REQUEST_HEADERS, "
+                        + "PROXY_REQUEST_CONTENT"
+                        + ") VALUES (?, ?, ?)");
 
-            ps.setLong(1, id);
-            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest())));
-            setBlob(ps, 3, content);
-            ps.execute();
+                ps.setLong(1, id);
+                ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest())));
+                setBlob(ps, 3, content);
+                ps.execute();
+
+            } else {
+                PreparedStatement ps = Base.startBatch("UPDATE PROXY_REQUEST SET PROXY_REQUEST_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
+                ps.setLong(1, updateRecord);
+                ps.execute();
+            }
             return null;
         });
 
@@ -175,39 +199,47 @@ public class LogToDbListener extends LoggingListener {
             Blob blob = (Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id);
             Utils.setEntity(metadata.getProxyRequest(), content, blob);
         }
+
     }
 
     @Override
     public void afterProxyResponse(Metadata metadata) {
-        Logging logging = metadata.getResponseConfig().getLogging();
+        ResponseConfig rc = metadata.getResponseConfig();
+        Logging logging = rc.getLogging();
+        Long updateRecord = metadata.shouldUpdateDbRecord(rc);
 
-        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+        if (updateRecord == null) {
             return;
         }
 
         boolean contentLogging = Boolean.TRUE.equals(logging.getProxyResponseContent());
-
-        long id = getId(metadata);
         BasicHttpResponseWrapper resp = metadata.getProxyResponse();
+        long id = getId(metadata);
         InputStream content = contentLogging ? Utils.getContent(resp) : null;
 
         runInTrunsaction(metadata, "After proxy response", () -> {
+            if (updateRecord == -1) {
+                PreparedStatement ps = Base.startBatch(
+                        "INSERT INTO PROXY_RESPONSE ("
+                        + "REQUEST_ID, "
+                        + "PROXY_RESPONSE_STATUS_CODE, "
+                        + "PROXY_RESPONSE_STATUS_LINE, "
+                        + "PROXY_RESPONSE_HEADERS, "
+                        + "PROXY_RESPONSE_CONTENT"
+                        + ") VALUES (?, ?, ?, ?, ?)");
 
-            PreparedStatement ps = Base.startBatch(
-                    "INSERT INTO PROXY_RESPONSE ("
-                    + "REQUEST_ID, "
-                    + "PROXY_RESPONSE_STATUS_CODE, "
-                    + "PROXY_RESPONSE_STATUS_LINE, "
-                    + "PROXY_RESPONSE_HEADERS, "
-                    + "PROXY_RESPONSE_CONTENT"
-                    + ") VALUES (?, ?, ?, ?, ?)");
+                ps.setLong(1, id);
+                ps.setInt(2, metadata.getProxyResponse().getStatusLine().getStatusCode());
+                ps.setString(3, metadata.getProxyResponse().getStatusLine().toString());
+                ps.setString(4, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
+                setBlob(ps, 5, content);
+                ps.execute();
 
-            ps.setLong(1, id);
-            ps.setInt(2, metadata.getProxyResponse().getStatusLine().getStatusCode());
-            ps.setString(3, metadata.getProxyResponse().getStatusLine().toString());
-            ps.setString(4, WRITER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse())));
-            setBlob(ps, 5, content);
-            ps.execute();
+            } else {
+                PreparedStatement ps = Base.startBatch("UPDATE PROXY_RESPONSE SET PROXY_RESPONSE_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
+                ps.setLong(1, updateRecord);
+                ps.execute();
+            }
             return null;
         });
 
@@ -215,41 +247,52 @@ public class LogToDbListener extends LoggingListener {
             Blob blob = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id);
             Utils.setEntity(resp, content, blob);
         }
+
     }
 
     @Override
     public void beforeHttpResponse(Metadata metadata) {
-        Logging logging = metadata.getResponseConfig().getLogging();
-        if (!Boolean.TRUE.equals(logging.getEnabled())) {
+        ResponseConfig rc = metadata.getResponseConfig();
+        Logging logging = rc.getLogging();
+        Long updateRecord = metadata.shouldUpdateDbRecord(rc);
+
+        if (updateRecord == null) {
             return;
         }
 
-        boolean contentLogging = Boolean.TRUE.equals(logging.getHttpResponseContent());
-
-        long id = getId(metadata);
+        boolean contentLogging = Boolean.TRUE.equals(logging.getProxyResponseContent());
         BasicHttpResponseWrapper resp = metadata.getProxyResponse();
+        long id = getId(metadata);
         InputStream content = contentLogging ? Utils.getContent(resp) : null;
 
         runInTrunsaction(metadata, "Before http response", () -> {
+            if (updateRecord == -1) {
+                PreparedStatement ps = Base.startBatch(
+                        "INSERT INTO RESPONSE ("
+                        + "REQUEST_ID, "
+                        + "RESPONSE_HEADERS, "
+                        + "RESPONSE_CONTENT"
+                        + ") VALUES (?, ?, ?)");
 
-            PreparedStatement ps = Base.startBatch(
-                    "INSERT INTO RESPONSE ("
-                    + "REQUEST_ID, "
-                    + "RESPONSE_HEADERS, "
-                    + "RESPONSE_CONTENT"
-                    + ") VALUES (?, ?, ?)");
+                ps.setLong(1, id);
+                ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletResponse())));
+                setBlob(ps, 3, content);
+                ps.execute();
 
-            ps.setLong(1, id);
-            ps.setString(2, WRITER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletResponse())));
-            setBlob(ps, 3, content);
-            ps.execute();
+            } else {
+                PreparedStatement ps = Base.startBatch("UPDATE PROXY_RESPONSE SET PROXY_RESPONSE_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
+                ps.setLong(1, updateRecord);
+                ps.execute();
+            }
+
+            if (contentLogging) {
+                Blob blob = (Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id);
+                Utils.setEntity(resp, content, blob);
+            }
+
             return null;
         });
 
-        if (contentLogging) {
-            Blob blob = (Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id);
-            Utils.setEntity(resp, content, blob);
-        }
     }
 
     @Override

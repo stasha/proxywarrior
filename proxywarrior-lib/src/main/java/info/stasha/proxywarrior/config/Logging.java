@@ -1,4 +1,4 @@
-package info.stasha.proxywarrior.config.logging;
+package info.stasha.proxywarrior.config;
 
 /**
  * Logging configuration.

@@ -4,7 +4,6 @@ import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -49,6 +48,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     private Boolean autoProxy;
     private Date autoProxyExpireTime;
     private Boolean forwardIp;
+    private Cache cache;
 
     /**
      * Creates new RequestConfig instance.
@@ -122,6 +122,24 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
      */
     public void setForwardIp(Boolean forwardIp) {
         this.forwardIp = forwardIp;
+    }
+
+    /**
+     * Returns response cache configuration.
+     *
+     * @return
+     */
+    public Cache getCache() {
+        return Utils.getValue(cache, this, getParent(), () -> getParent().getCache(), null);
+    }
+
+    /**
+     * Sets response cache configuration.
+     *
+     * @param cache
+     */
+    public void setCache(Cache cache) {
+        this.cache = cache;
     }
 
     /**
@@ -321,6 +339,21 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     }
 
     /**
+     * Returns request path including query params.
+     *
+     * @param req
+     * @param url
+     * @return
+     */
+    public String getPath(final HttpServletRequest req, String url) {
+        StringBuffer u = req.getRequestURL();
+        String uri = req.getRequestURI();
+        String ctx = req.getContextPath();
+        String base = u.substring(0, u.length() - uri.length() + ctx.length()) + "/";
+        return url.replace(base, "");
+    }
+
+    /**
      * Returns all configured requests.
      *
      * @return
@@ -419,6 +452,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
         metadata.setHttpServletRequest(request);
         metadata.setHttpServletResponse(response);
         metadata.setFullUrl(requestUrl);
+        metadata.setPath(getPath(request, requestUrl));
 
         for (RequestConfig req : getRequests()) {
 

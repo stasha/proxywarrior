@@ -7,7 +7,7 @@ import info.stasha.proxywarrior.ProxyWarrior;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.Utils;
 import info.stasha.proxywarrior.config.Metadata;
-import info.stasha.proxywarrior.config.logging.Logging;
+import info.stasha.proxywarrior.config.Logging;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.util.Date;
