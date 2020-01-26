@@ -1,0 +1,142 @@
+---
+id: headers-config
+
+targetUri: http://localhost:9998/proxy
+
+# global header setup
+headers:
+    # headers that will be available in all requests and responses
+    common:
+        default-header: 
+            - default-header-value
+    
+    # headers that will be available in all requests
+    request:
+        default-request-header:
+            - default-request-header-value
+    
+    # headers that will be available in all responses
+    response:
+        default-response-header:
+            - default-response-header-value
+    
+requests:
+    
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    autoProxy: false
+  
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    autoProxy: false
+    
+    # request and responses should have default headers available
+  - url: /defaultheader
+  
+    # request and response should not have default header
+  - url: /removedefaultheader
+    headers:
+        common:
+            ~default-header: 
+  
+    # request and response should keep default header
+  - url: /keepdefaultheader
+    headers:
+        common:
+            =default-header:
+    
+    # request and response should add header if it is not present
+  - url: /addheaderifitdoesnotexist
+    headers:
+        common:
+            +default-header: 
+                - added-default-header-value
+    
+    # request and response should add or replace existing header 
+  - url: /addorreplaceheader
+    headers:
+        common:
+            default-header:
+                - replacing-default-header-value
+                
+    # request and response should override common default-header
+  - url: /overridedefaultheader
+    headers:
+        request:
+            default-header:
+                - request-overriding-default-header-value
+        response:
+            default-header:
+                - response-overriding-default-header-value
+    
+    # request override headers
+  - url: /overriderequestheader
+    headers:
+        request:
+            default-header:
+                - overriding-common-default-header
+    requests:
+        - method: GET
+          headers:
+              request:
+                  default-header:
+                      - get-overriding-default-header
+        - method: OPTIONS
+          headers:
+              request:
+                  default-header:
+                      - options-overriding-default-header
+        # all other requests should not override header 
+        - method: "*"
+        
+    # response override headers
+  - url: /overrideresponseheader
+    headers:
+        response:
+            default-header:
+                - overriding-common-default-header
+    responses:
+        - method: GET
+          headers:
+              response:
+                  default-header:
+                      - get-overriding-default-header
+        - method: OPTIONS
+          headers:
+              response:
+                  default-header:
+                      - options-overriding-default-header
+          # all other responses should not override header
+        - method: "*"
+        
+    # add new header to request and response
+  - url: /addnewheader
+    headers:
+        request:
+            new-common-request-header:
+                - new-common-request-header-value
+        response:
+            new-common-response-header:
+                - new-common-response-header-value
+    requests:
+        - method: GET
+          headers:
+              request:
+                  new-specific-request-header:
+                      - new-specific-request-header-value
+              
+        - url: "*"
+    responses:
+        - method: GET
+          headers:
+              response:
+                  new-specific-response-header:
+                      - new specific-response-header-value
+                
+                
+  
+  - url: "*"
+    
+

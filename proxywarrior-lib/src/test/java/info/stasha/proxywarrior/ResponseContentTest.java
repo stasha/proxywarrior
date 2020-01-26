@@ -1,9 +1,8 @@
 package info.stasha.proxywarrior;
 
-import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.testosterone.TestResponseBuilder.TestResponse;
 import info.stasha.testosterone.annotation.Request;
-import javax.servlet.http.HttpServletRequest;
+import info.stasha.testosterone.servlet.ServletContainerConfig;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -23,29 +22,13 @@ import org.junit.jupiter.api.Test;
  *
  * @author stasha
  */
-public class ProxyWarriorTest extends AbstractTest {
-
-    @GET
-    @Path("/proxy/test")
-    public String passThroughProxyEndpoint(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
-        Metadata proxyRequest = (Metadata) req.getAttribute("proxy");
-        Assertions.assertNotNull(proxyRequest, "Request should have proxy attribute");
-
-        // headers are not touched for passthrough requests
-        Assertions.assertNull(req.getHeader("xtra"), "Model header should be null");
-        Assertions.assertNull(req.getHeader("Attribute-Header"), "Model header should be null");
-
-        resp.setHeader("proxied", "true");
-
-        return "get test";
-    }
-
-    @Test
-    @Request(url = "/test")
-    public void passThroughProxyTest(Response resp) {
-        String proxiedHeaderValue = resp.getHeaderString("proxied");
-        Assertions.assertEquals("true", proxiedHeaderValue, "Proxied header should equal");
-        Assertions.assertEquals("get test", resp.readEntity(String.class), "Returned string should equal");
+public class ResponseContentTest extends AbstractTest {
+    
+    @Override
+    public void configure(ServletContainerConfig config) {
+        this.configPath = "/resp-content-config.yaml";
+        
+        super.configure(config);
     }
 
     @GET

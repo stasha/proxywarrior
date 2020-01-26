@@ -161,7 +161,9 @@ public class HttpClientConfig {
      */
     public void dispose() {
         try {
-            ((Closeable) httpClient).close();
+            if (httpClient != null) {
+                ((Closeable) httpClient).close();
+            }
         } catch (IOException e) {
             String msg = "Failed to close http client";
             LOGGER.log(Level.SEVERE, msg);

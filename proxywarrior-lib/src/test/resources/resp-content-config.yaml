@@ -1,5 +1,5 @@
 ---
-id: test-config
+id: resp-content-config.yaml
 
 properties:
   host: http://localhost
@@ -23,18 +23,19 @@ clientConfig:
   handleRedirects: true
 
 headers:
-  origin: 
-    - https://www.testorigin.com
-  xtra: 
-    - _[xtra]_
-  _[attrkey]_: 
-    - _[attrval]_
-  add-if-not-present: 
-    - add-if-not-present-original
-  keep-existing: 
-    - keep-existing-original
-  delete-existing: 
-    - deleteheader
+    common:
+        origin: 
+          - https://www.testorigin.com
+        xtra: 
+          - _[xtra]_
+        _[attrkey]_: 
+          - _[attrval]_
+        add-if-not-present: 
+          - add-if-not-present-original
+        keep-existing: 
+          - keep-existing-original
+        delete-existing: 
+          - deleteheader
     
 #cache:
 #  enabled: true
@@ -56,10 +57,11 @@ requests:
   - url: /fileresponse
     removeHeaders: "null"
     headers: 
-        +add-if-not-present: 
-          - add-if-not-present
-        =keep-existing: 
-        ~delete-existing: 
+        common:
+            +add-if-not-present: 
+              - add-if-not-present
+            =keep-existing: 
+            ~delete-existing: 
             
     responses:
       - file: classpath:/file.txt
@@ -138,8 +140,9 @@ requests:
       - method: "HEAD|OPTIONS"
         requestHeader: "x-multy-method"
         headers:
-            x-head-options-header: 
-              - true
+            common:
+                x-head-options-header: 
+                  - true
         text: my head|options text response
             
         # all responses that did not match previous response matchers
@@ -149,8 +152,9 @@ requests:
         # additional header (x-default-header: true) will be added to response
       - text: my default text response
         headers:
-            x-default-header: 
-              - true
+            common:
+                x-default-header: 
+                  - true
     
     # request configuration that will match
     # any request url is always last

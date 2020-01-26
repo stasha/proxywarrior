@@ -2,6 +2,7 @@ package info.stasha.proxywarrior;
 
 import com.zaxxer.hikari.HikariDataSource;
 import info.stasha.proxywarrior.config.CommonConfig;
+import info.stasha.proxywarrior.config.Headers;
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.proxywarrior.config.RequestConfig;
 import info.stasha.proxywarrior.config.HttpClientConfig;
@@ -18,6 +19,7 @@ import java.nio.file.Paths;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import javax.servlet.Filter;
@@ -79,6 +81,22 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
      */
     public ProxyWarrior(HikariDataSource dataSource) {
         this.dataSource = dataSource;
+    }
+
+    protected void executeInTransaction(Runnable sup) {
+        if (!Base.hasConnection()) {
+            try {
+                Base.open(dataSource);
+                Base.openTransaction();
+                sup.run();
+                Base.commitTransaction();
+            } finally {
+                Base.rollbackTransaction();
+                Base.close();
+            }
+        } else {
+            sup.run();
+        }
     }
 
     /**
@@ -182,7 +200,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         LOGGER.info("System config path: {}", propsLocation);
 
         String filterConfigPath = filterConfig.getInitParameter(FILTER_INIT_CONFIG_LOCATION);
-        LOGGER.info("Filter config path: {}", propsLocation);
+        LOGGER.info("Filter config path: {}", filterConfigPath);
 
         propsLocation = propsLocation != null ? propsLocation : filterConfigPath;
 
@@ -237,7 +255,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         if (propsLocation != null) {
             CONFIG_RELOAD_TIMER.scheduleAtFixedRate(new ConfigLoader(propsLocation, (c) -> {
                 this.config = c;
-                this.saveConfigToDb(this.config, propsLocation);
+                executeInTransaction(() -> {
+                    this.saveConfigToDb(this.config, propsLocation);
+                });
             }), 0, 1000 * 10);
         }
 
@@ -257,14 +277,10 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             throw new ProxyWarriorException(msg, ex);
         }
 
-        try {
-            Base.open(dataSource);
+        executeInTransaction(() -> {
             RequestConfig c = loadConfig();
             c.getListeners().init(this);
-        } finally {
-            Base.close();
-        }
-
+        });
     }
 
     protected String getConfigParam(Object value, String defaultValue) {
@@ -335,8 +351,8 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         return "!Proxy!" + this.filterConfig.getFilterName();
     }
 
-    protected void overrideHeaders(HttpMessage message, CommonConfig<CommonConfig> config) {
-        Utils.setHeaders(message, config);
+    protected void overrideHeaders(HttpMessage message, Map<String, List<String>> headers, CommonConfig config) {
+        Headers.setHeaders(message, headers, config);
     }
 
     @Override
@@ -345,7 +361,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         metadata.setProxyRequest(proxyRequest);
 
         RequestConfig requestConfig = metadata.getRequestConfig();
-        overrideHeaders(proxyRequest, (CommonConfig) requestConfig);
+        overrideHeaders(proxyRequest, requestConfig.getHeaders().getRequest(), requestConfig);
         requestConfig.getListeners().fire(ProxyAction.BEFORE_PROXY_REQUEST, metadata);
         BasicHttpResponseWrapper proxyResponse = null;
 
@@ -355,16 +371,16 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             String statusLine = (String) Base.firstCell("SELECT PROXY_RESPONSE_STATUS_LINE FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
             Blob data = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
             String heders = (String) Base.firstCell("SELECT PROXY_RESPONSE_HEADERS FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
-            
+
             String[] statusData = statusLine.split(" ");
             String[] protocol = statusData[0].split("/");
             String[] majorMinor = protocol[1].split("\\.");
             ProtocolVersion pv = new ProtocolVersion(protocol[0], Integer.parseInt(majorMinor[0]), Integer.parseInt(majorMinor[1]));
             HttpResponse resp = new BasicHttpResponse(new BasicStatusLine(pv, Integer.parseInt(statusData[1]), statusData[2]));
-            
+
             Utils.setEntity(resp, null, data);
-            Utils.setHeaders(resp, MapperFactory.getMapper("yaml").readValue(heders, Map.class));
-            
+            Headers.setHeaders(resp, MapperFactory.getMapper("yaml").readValue(heders, Map.class));
+
             proxyResponse = new BasicHttpResponseWrapper(resp);
         } else {
             proxyResponse = new BasicHttpResponseWrapper(super.doExecute(servletRequest, servletResponse, proxyRequest));
@@ -392,6 +408,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         metadata.getRequestConfig().getListeners().fire(ProxyAction.AFTER_PROXY_RESPONSE, metadata);
 
         ResponseConfig responseConfig = metadata.getResponseConfig();
+        Map<String, List<String>> headers = responseConfig.getHeaders().getResponse();
         BasicHttpResponseWrapper proxyResponse = (BasicHttpResponseWrapper) metadata.getProxyResponse();
         HttpEntity oldEntity = null;
         HttpEntity newEntity = null;
@@ -399,6 +416,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         InputStream content = null;
 
         try {
+            servletResponse.reset();
+            
+            overrideHeaders(proxyResponse, headers, responseConfig);
 
             oldEntity = proxyResponse.getOriginalEntity();
 
@@ -407,12 +427,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 String file = metadata.getResponseConfig().getFile();
 
                 if (text != null) {
-                    overrideHeaders(proxyResponse, (CommonConfig) responseConfig);
 
                     proxyResponse.setHeader("Content-Length", String.valueOf(text.getBytes().length));
                     proxyResponse.removeHeaders("Content-Encoding");
-
-                    copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 
                     content = new ByteArrayInputStream(text.getBytes());
                 } else if (file != null) {
@@ -432,22 +449,17 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                         servletResponse.getWriter().println("File can not be found: \"" + f.getPath() + "\"");
                     }
 
-                    overrideHeaders(proxyResponse, (CommonConfig) responseConfig);
-
                     proxyResponse.setHeader("Content-Length", String.valueOf(f.length()));
                     proxyResponse.removeHeaders("Content-Encoding");
-
-                    copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 
                     content = new FileInputStream(f);
                 } else {
                     content = oldEntity.getContent();
                 }
 
-            } else {
-                overrideHeaders(proxyResponse, (CommonConfig) responseConfig);
-                copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
             }
+
+            copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 
             if (oldEntity != null && content != null) {
                 Utils.setEntity(proxyResponse, content);

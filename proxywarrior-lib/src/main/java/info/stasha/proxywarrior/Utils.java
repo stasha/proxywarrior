@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -124,44 +122,6 @@ public class Utils {
         }
         if (childMap != null) {
             h.putAll(childMap);
-        }
-        return h;
-    }
-
-    private static Map<String, List<String>> fillHeaders(Map<String, List<String>> container, Map<String, List<String>> map) {
-        map.forEach((key, value) -> {
-            if (value != null) {
-                List<String> headers = container.get(key);
-                headers = headers == null ? new ArrayList<>() : headers;
-                for (String header : value) {
-                    headers.add(0, header);
-                };
-
-                container.put(key, headers);
-            } else {
-                container.put(key, new ArrayList<>());
-            }
-        });
-
-        return container;
-    }
-
-    /**
-     * Returns joined two maps where child map overwrites parent map entries if
-     * they are equal.
-     *
-     * @param <T>
-     * @param childMap
-     * @param parentMap
-     * @return
-     */
-    public static Map<String, List<String>> getMapList(Map<String, List<String>> childMap, Map<String, List<String>> parentMap) {
-        Map<String, List<String>> h = new LinkedHashMap<>();
-        if (parentMap != null) {
-            h = fillHeaders(h, parentMap);
-        }
-        if (childMap != null) {
-            h = fillHeaders(h, childMap);
         }
         return h;
     }
@@ -292,7 +252,7 @@ public class Utils {
                     if (resp.getEntity() != null) {
                         EntityUtils.consumeQuietly(resp.getEntity());
                     }
-                } 
+                }
                 resp.setEntity(new InputStreamEntity(blob != null ? new BufferedInputStream(blob.getBinaryStream()) : content, getContentLength(resp)));
             }
             return null;
@@ -333,79 +293,4 @@ public class Utils {
         }));
     }
 
-    /**
-     * This method will remove existing headers and add new headers specified in
-     * passed map.
-     *
-     * @param message
-     * @param headers
-     */
-    public static void setHeaders(HttpMessage message, Map<String, List<String>> headers) {
-        headers.forEach((key, value) -> {
-            message.removeHeaders(key);
-            value.forEach((headerValue) -> {
-                message.addHeader(key, headerValue);
-            });
-        });
-    }
-
-    public static void setHeaders(HttpMessage message, CommonConfig<CommonConfig> config) {
-
-        if (config.getHeaders() != null) {
-            for (String k : config.getHeaders().keySet()) {
-                String key = Utils.getValue(k, config);
-
-                // modifier can be: =, ~, +
-                String modifier = key.trim().substring(0, 1);
-
-                List<String> headers = config.getHeaders().get(k);
-                key = key.replaceFirst("^(=|~|\\+)", "");
-                key = Utils.getValue(key, config);
-
-                // if there are no header values specified, we create one "artifical" value
-                // so logic on header names is run
-                headers = headers == null ? Arrays.asList(new String[]{"...."}) : headers;
-                if (headers.isEmpty()) {
-                    headers.add("....");
-                }
-
-                for (String v : headers) {
-                    String value = Utils.getValue(v, config);
-
-                    EXISTING_HEADERS:
-                    for (Header header : message.getAllHeaders()) {
-                        switch (modifier) {
-                            case "=":
-                                // do nothing
-                                continue;
-                            case "~":
-                                // remove header
-                                if (header.getName().equals(key)) {
-                                    if ((value.equals("....") || header.getValue().equals(value))) {
-                                        message.removeHeader(header);
-                                    }
-                                }
-                                continue;
-                            case "+":
-                                // add header if it does not exist
-                                if (!message.containsHeader(key)) {
-                                    message.setHeader(key, value);
-                                }
-                                continue;
-                            default:
-                                // remove headers based on removeHeadersPattern
-                                if (config.getRemoveHeaders() != null && config.getRemoveHeadersPattern().matcher(header.getName()).find()) {
-                                    message.removeHeader(header);
-                                    continue;
-                                }
-
-                                // replace or add header
-                                message.setHeader(key, value);
-                                continue;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

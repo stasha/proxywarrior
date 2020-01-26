@@ -25,7 +25,7 @@ public abstract class AbstractTest implements Testosterone {
 
     protected ProxyWarrior PROXY_FILTER;
     protected static boolean failed = false;
-    protected static boolean useConfig = true;
+    protected String configPath;
 
     @Override
     public void configure(DbConfig config) {
@@ -38,9 +38,10 @@ public abstract class AbstractTest implements Testosterone {
         PROXY_FILTER = Mockito.spy(new ProxyWarrior((HikariDataSource) getTestConfig().getDbConfig().getDataSource()));
 
         Filter f = new Filter(PROXY_FILTER, "/*");
-        if (useConfig == true) {
-            f.getInitParams().put(ProxyWarrior.FILTER_INIT_CONFIG_LOCATION, this.getClass().getResource("/config.yaml").getPath());
+        if (configPath != null) {
+            f.getInitParams().put(ProxyWarrior.FILTER_INIT_CONFIG_LOCATION, this.getClass().getResource(configPath).getPath());
         }
+
         config.addFilter(f);
 
         try {

@@ -30,7 +30,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private String removeHeaders;
     @JsonIgnore
     private Pattern removeHeadersPattern;
-    private Map<String, List<String>> headers;
+    private Headers headers;
 
     private Listeners listeners;
 
@@ -251,31 +251,22 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Returns map of headers that should be preserved/added/removed.<br>
+     * Returns headers configuration<br>
      *
-     * @see #setHeaders(java.util.Map)
      * @return
      */
-    public Map<String, List<String>> getHeaders() {
-        return Utils.getMapList(headers, getParent() != null ? getParent().getHeaders() : null);
+    public Headers getHeaders() {
+        return Headers.getHeaders(headers, getParent() != null ? getParent().getHeaders() : null);
     }
 
     /**
-     * Sets map of headers that should be preserved/added/removed.<br>
-     * This has higher priority then #getRemoveHeaders(). Example:<br>
-     * <ol>
-     * <li>headerName: headerValue = will add or replace existing
-     * requestHeader</li>
-     * <li>+headerName: headerValue = will add requestHeader only if it does not
-     * exist</li>
-     * <li>~headerName: = will remove specified requestHeader
-     * <li>=headerName: = will preserve existing requestHeader</li>
-     * </ol>
+     * Sets headers configuration.
      *
      * @param headers
      */
-    public void setHeaders(Map<String, List<String>> headers) {
+    public void setHeaders(Headers headers) {
         this.headers = headers;
+        this.headers.setConfig(this);
     }
 
     /**

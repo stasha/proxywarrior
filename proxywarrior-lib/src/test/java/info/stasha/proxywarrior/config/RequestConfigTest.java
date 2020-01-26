@@ -1,4 +1,4 @@
-package info.stasha.proxywarrior.config.request;
+package info.stasha.proxywarrior.config;
 
 import info.stasha.proxywarrior.config.RequestConfig;
 import javax.servlet.http.HttpServletRequest;
@@ -11,7 +11,7 @@ import org.mockito.Mockito;
  *
  * @author stasha
  */
-public class RequestTest {
+public class RequestConfigTest {
 
     private static final String URI = "https://www.test.com:8910";
     private static final String URL = URI + "/test?name=1&id=2";

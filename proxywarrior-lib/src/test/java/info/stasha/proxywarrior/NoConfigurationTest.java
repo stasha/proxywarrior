@@ -2,6 +2,7 @@ package info.stasha.proxywarrior;
 
 import info.stasha.proxywarrior.config.Metadata;
 import info.stasha.testosterone.annotation.Request;
+import info.stasha.testosterone.servlet.ServletContainerConfig;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
@@ -15,21 +16,22 @@ import org.junit.jupiter.api.Test;
  *
  * @author stasha
  */
-public class ProxyWarriorNoConfigTest extends AbstractTest {
+public class NoConfigurationTest extends AbstractTest {
 
-    static {
-        AbstractTest.useConfig = false;
+    @Override
+    public void configure(ServletContainerConfig config) {
+        this.configPath = null;
+        super.configure(config);
     }
 
     @Override
     public void afterServerStop() throws Exception {
         super.afterServerStop();
-        AbstractTest.useConfig = true;
     }
 
     @GET
-    @Path("/test")
-    public String passThroughProxyEndpoint(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
+    @Path("/passthrough")
+    public String noConfigTest(@Context HttpServletRequest req, @Context HttpServletResponse resp) {
         Metadata metadata = (Metadata) req.getAttribute("proxy");
         Assertions.assertNotNull(metadata, "Request should have proxy attribute");
 
@@ -39,8 +41,8 @@ public class ProxyWarriorNoConfigTest extends AbstractTest {
     }
 
     @Test
-    @Request(url = "/test")
-    public void passThroughProxyTest(Response resp) {
+    @Request(url = "/passthrough")
+    public void noConfigTest(Response resp) {
         String proxiedHeaderValue = resp.getHeaderString("proxied");
         Assertions.assertEquals("true", proxiedHeaderValue, "Proxied header should equal");
         Assertions.assertEquals("get test", resp.readEntity(String.class), "Returned string should equal");

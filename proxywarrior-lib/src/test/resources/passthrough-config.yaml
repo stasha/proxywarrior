@@ -1,0 +1,32 @@
+---
+id: passthrough-config
+
+# global settings inherited by requests and responses
+
+# target uri where all requests will be proxied unless they are 
+# flagged with autoProxy: false
+targetUri: http://localhost:9998/proxy
+
+# all requests that does not override autoProxy will inherit it from here
+autoProxy: false
+
+requests:
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    
+  - url: ".*?/proxy/noproxy"
+    headers:
+        common:
+            # this header will not be available in endpoint because
+            # whole proxy engine is bypassed
+            notavailableheader: 
+              - true
+    
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    
+    # all other requests are proxied using proxywarrior
+  - url: "*"
+    autoProxy: true
