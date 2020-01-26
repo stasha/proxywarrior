@@ -133,7 +133,11 @@ requests:
           headers:
               response:
                   new-specific-response-header:
-                      - new specific-response-header-value
+                      - new-specific-response-header-value
+                      
+    # all headers from requests and responses should be removed
+  - url: /removeallheaders
+    removeHeaders: "*"
                 
                 
   

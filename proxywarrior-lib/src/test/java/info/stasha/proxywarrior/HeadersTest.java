@@ -253,4 +253,42 @@ public class HeadersTest extends AbstractTest {
         Assertions.assertNull(resp.getHeaderString("default-request-header"), "Header value should be null");
         Assertions.assertEquals("response overriding header response", resp.readEntity(String.class), "Response value should equal");
     }
+
+    @GET
+    @Path("/proxy/addnewheader")
+    public String addNewHeader(
+            @HeaderParam("new-common-request-header") String newCommonHeader,
+            @HeaderParam("new-specific-request-header") String newSpecificHeader) {
+        Assertions.assertEquals("new-common-request-header-value", newCommonHeader, "Header value should equal");
+        Assertions.assertEquals("new-specific-request-header-value", newSpecificHeader, "Header value should equal");
+        return "add new header response";
+    }
+
+    @Test
+    @Request(url = "/addnewheader")
+    public void addNewHeader(Response resp) {
+        Assertions.assertEquals("new-common-response-header-value", resp.getHeaderString("new-common-response-header"), "Header value should equal");
+        Assertions.assertEquals("new-specific-response-header-value", resp.getHeaderString("new-specific-response-header"), "Header value should equal");
+        Assertions.assertEquals("default-response-header-value", resp.getHeaderString("default-response-header"), "Header value should equal");
+        Assertions.assertEquals("add new header response", resp.readEntity(String.class), "Response value should equal");
+    }
+    
+    @GET
+    @Path("/proxy/removeallheaders")
+    public String removeallheaders(
+            @HeaderParam("default-header") String newCommonHeader,
+            @HeaderParam("default-request-header") String newSpecificHeader) {
+        Assertions.assertNull(newCommonHeader, "Header should be null");
+        Assertions.assertNull(newSpecificHeader, "Header should be null");
+        return "remove all headers response";
+    }
+
+    @Test
+    @Request(url = "/removeallheaders")
+    public void removeallheaders(Response resp) {
+        Assertions.assertNull(resp.getHeaderString("default-header"), "Header should be null");
+        Assertions.assertNull(resp.getHeaderString("default-response-header"), "Header should be null");
+        Assertions.assertEquals("remove all headers response", resp.readEntity(String.class), "Response value should equal");
+    }
+    
 }
