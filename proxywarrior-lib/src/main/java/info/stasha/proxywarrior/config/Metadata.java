@@ -273,7 +273,7 @@ public class Metadata {
         Logging logging = config.getLogging();
 
         if (cacheResult == null) {
-            cacheResult = new CacheResult();
+            this.setCacheResult(new CacheResult());
 
             if (cache.getExpirationTime() > 0) {
                 Base.find("SELECT REQUEST_ID, REQUEST_TIME, REQUEST_METHOD, REQUEST_PATH FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND REQUEST_METHOD = ?",

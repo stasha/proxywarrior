@@ -16,20 +16,9 @@ import org.apache.http.HttpMessage;
  */
 public class Headers {
 
-    @JsonIgnore
-    private CommonConfig config;
-
     private Map<String, List<String>> common = new LinkedHashMap<>();
     private Map<String, List<String>> request = new LinkedHashMap<>();
     private Map<String, List<String>> response = new LinkedHashMap<>();
-
-    public CommonConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(CommonConfig config) {
-        this.config = config;
-    }
 
     /**
      * Gets common headers for request and response.

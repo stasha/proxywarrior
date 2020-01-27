@@ -3,7 +3,6 @@ package info.stasha.proxywarrior.config;
 import info.stasha.proxywarrior.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import info.stasha.proxywarrior.listeners.Listeners;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -266,7 +265,6 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void setHeaders(Headers headers) {
         this.headers = headers;
-        this.headers.setConfig(this);
     }
 
     /**
