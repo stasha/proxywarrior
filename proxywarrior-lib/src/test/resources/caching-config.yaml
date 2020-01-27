@@ -1,0 +1,36 @@
+---
+id: caching-config
+
+targetUri: http://localhost:9998/proxy
+
+# cache configuration
+cache:
+    # Enabling cache for all request/responses.
+    # When disabled, cached content will be updated with new one.
+    enabled: true
+    # Time in seconds after which cached content is replaced with new one.
+    expirationTime: 5
+    
+requests:
+    
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    autoProxy: false
+  
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    autoProxy: false
+    
+  - url: /disabledcache
+    cache:
+        enabled: false
+        expirationTime: 5
+        
+  - url: /noexpiration
+    cache:
+        enabled: true
+        expirationTime: 0
+    
+  - url: "*"

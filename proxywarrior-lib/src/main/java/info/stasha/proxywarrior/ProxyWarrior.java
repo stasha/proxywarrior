@@ -366,7 +366,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         BasicHttpResponseWrapper proxyResponse = null;
 
         // if caching is enabled then dont' send request but just return existing from DB
-        Long cacheId = metadata.getCacheResult().getId();
+        Long cacheId = metadata.shouldUpdateDbRecord(requestConfig);
         if (cacheId != null && cacheId > 0) {
             String statusLine = (String) Base.firstCell("SELECT PROXY_RESPONSE_STATUS_LINE FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
             Blob data = (Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", cacheId);
@@ -378,7 +378,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             ProtocolVersion pv = new ProtocolVersion(protocol[0], Integer.parseInt(majorMinor[0]), Integer.parseInt(majorMinor[1]));
             HttpResponse resp = new BasicHttpResponse(new BasicStatusLine(pv, Integer.parseInt(statusData[1]), statusData[2]));
 
-            Utils.setEntity(resp, null, data);
+            Utils.setEntity(resp, new ByteArrayInputStream(new String().getBytes()), data);
             Headers.setHeaders(resp, MapperFactory.getMapper("yaml").readValue(heders, Map.class));
 
             proxyResponse = new BasicHttpResponseWrapper(resp);
@@ -523,6 +523,10 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 Base.open(this.dataSource);
                 htReq = new HttpServletRequestWrapperImpl(htReq);
                 metadata.setHttpServletRequest(htReq);
+                Long cacheId = metadata.shouldUpdateDbRecord(req);
+                if(cacheId < -1){
+                    Base.exec("DELETE FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND CACHED = true", req.getId(), metadata.getPath());
+                }
                 req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 
                 getHttpClient(metadata);

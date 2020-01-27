@@ -4,6 +4,7 @@ import info.stasha.proxywarrior.BasicHttpResponseWrapper;
 import info.stasha.proxywarrior.ProxyWarrior;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.http.HttpRequest;
@@ -257,6 +258,7 @@ public class Metadata {
      * a. returns -1 if record needs to be inserted into DB<br>
      * b. returns ID of the record that needs to be updated<br>
      * c. returns null if record should not be inserted/updated<br>
+     * d. returns -ID of the record if record has expired<br>
      *
      * Insert/update record:<br>
      * a. if cache is enabled<br>
@@ -283,10 +285,8 @@ public class Metadata {
                     return false;
                 });
             }
-        }
-
-        if (cacheResult.id != null) {
-            this.id = cacheResult.id;
+        } else {
+            return cacheResult.id;
         }
 
         // 1. if cache is enabled
@@ -294,25 +294,27 @@ public class Metadata {
         //      b. update cache if cache expired
         if (Boolean.TRUE.equals(cache.getEnabled())) {
             if (cacheResult.ts == null) {
-                return new Long(-1);
+                cacheResult.id = new Long(-1);
+                return cacheResult.id;
             } else {
-                Calendar cal = Calendar.getInstance();
                 // setting request time + expiration time as future time
-                cal.setTimeInMillis(cacheResult.ts.getTime() + cache.getExpirationTime() * 10);
-                // in case current time is greater then future time, return false
-                if (Calendar.getInstance().after(cal)) {
-                    return cacheResult.id;
+                Date date = new Date(cacheResult.ts.getTime() + (cache.getExpirationTime() * 1000));
+                // in case current time is greater then future time then update cache
+                if (Calendar.getInstance().getTime().after(date)) {
+                    cacheResult.id = -cacheResult.id;
                 }
+                return cacheResult.id;
             }
         } // 2. if cache is disabled and expiration time is set
         //      a. update cache
         else {
             if (cache.getExpirationTime() > 0) {
                 if (cacheResult.ts == null) {
-                    return new Long(-1);
+                    cacheResult.id = new Long(-1);
                 } else {
-                    return cacheResult.id;
+                    cacheResult.id = -cacheResult.id;
                 }
+                return cacheResult.id;
             }
         }
 
