@@ -275,6 +275,10 @@ public class Metadata {
         if (cacheResult == null) {
             this.setCacheResult(new CacheResult());
 
+            if (Boolean.TRUE.equals(logging.getEnabled())) {
+                cacheResult.id = new Long(-1);
+            }
+
             if (cache.getExpirationTime() > 0) {
                 Base.find("SELECT REQUEST_ID, REQUEST_TIME, REQUEST_METHOD, REQUEST_PATH FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND REQUEST_METHOD = ?",
                         this.getRequestConfig().getId(), this.getPath(), this.getHttpServletRequest().getMethod()).with((row) -> {
@@ -319,7 +323,7 @@ public class Metadata {
         }
 
         // 3. if logging is enabled
-        if (logging.getEnabled()) {
+        if (Boolean.TRUE.equals(logging.getEnabled())) {
             return new Long(-1);
         }
 

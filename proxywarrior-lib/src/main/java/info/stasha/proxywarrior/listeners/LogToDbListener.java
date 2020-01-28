@@ -142,10 +142,6 @@ public class LogToDbListener extends LoggingListener {
 
             } else {
                 id[0] = metadata.getCacheResult().getId();
-//                PreparedStatement ps = Base.startBatch("UPDATE REQUEST SET REQUEST_TIME = ? WHERE REQUEST_ID = ?");
-////                ps.setTimestamp(1, new Timestamp(Calendar.getInstance().getTime().getTime()));
-//                ps.setLong(2, updateRecord);
-//                ps.execute();
             }
 
             if (contentLogging) {
@@ -194,9 +190,6 @@ public class LogToDbListener extends LoggingListener {
 
             } else {
                 id[0] = metadata.getCacheResult().getId();
-//                PreparedStatement ps = Base.startBatch("UPDATE PROXY_REQUEST SET PROXY_REQUEST_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
-//                ps.setLong(1, updateRecord);
-//                ps.execute();
             }
             return null;
         });
@@ -243,9 +236,6 @@ public class LogToDbListener extends LoggingListener {
 
             } else {
                 id[0] = metadata.getCacheResult().getId();
-//                PreparedStatement ps = Base.startBatch("UPDATE PROXY_RESPONSE SET PROXY_RESPONSE_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
-//                ps.setLong(1, updateRecord);
-//                ps.execute();
             }
             return null;
         });
@@ -287,13 +277,6 @@ public class LogToDbListener extends LoggingListener {
                 ps.execute();
 
             } else {
-
-//                PreparedStatement ps = Base.startBatch("UPDATE PROXY_RESPONSE SET PROXY_RESPONSE_TIME = CURRENT_TIMESTAMP WHERE REQUEST_ID = ?");
-//                ps.setLong(1, updateRecord);
-//                ps.execute();
-            }
-
-            if (updateRecord > 0) {
                 id[0] = metadata.getCacheResult().getId();
             }
 

@@ -104,4 +104,34 @@ public class Logging {
         this.httpResponseContent = httpResponseContent;
     }
 
+    /**
+     * Combines parent child and parent logging configurations.
+     *
+     * @param childLogging
+     * @param parentLogging
+     * @return
+     */
+    public static Logging getLogging(Logging childLogging, Logging parentLogging) {
+        Logging logging = childLogging != null ? childLogging : new Logging();
+        if (parentLogging != null) {
+            if (logging.getEnabled() == null) {
+                logging.setEnabled(parentLogging.getEnabled());
+            }
+            if (logging.getHttpRequestContent() == null) {
+                logging.setHttpRequestContent(parentLogging.getHttpRequestContent());
+            }
+            if (logging.getHttpResponseContent() == null) {
+                logging.setHttpResponseContent(parentLogging.getHttpResponseContent());
+            }
+            if (logging.getProxyRequestContent() == null) {
+                logging.setProxyRequestContent(parentLogging.getProxyRequestContent());
+            }
+            if (logging.getProxyResponseContent() == null) {
+                logging.setProxyResponseContent(parentLogging.getProxyResponseContent());
+            }
+        }
+
+        return logging;
+    }
+
 }

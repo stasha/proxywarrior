@@ -121,7 +121,11 @@ public class LogObject {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("\n\n------ " + this.getType() + " ------\n");
+        StringBuilder sb = new StringBuilder();
+
+        if (this.getType() != null) {
+            sb.append("\n\n------ ").append(this.getType()).append(" ------\n");
+        }
 
         if (this.getId() != null) {
             sb.append("id: ").append(this.getId()).append("\n");

@@ -48,7 +48,6 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     private Boolean autoProxy;
     private Date autoProxyExpireTime;
     private Boolean forwardIp;
-    private Cache cache;
 
     /**
      * Creates new RequestConfig instance.
@@ -122,24 +121,6 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
      */
     public void setForwardIp(Boolean forwardIp) {
         this.forwardIp = forwardIp;
-    }
-
-    /**
-     * Returns response cache configuration.
-     *
-     * @return
-     */
-    public Cache getCache() {
-        return Utils.getValue(cache, this, getParent(), () -> getParent().getCache(), null);
-    }
-
-    /**
-     * Sets response cache configuration.
-     *
-     * @param cache
-     */
-    public void setCache(Cache cache) {
-        this.cache = cache;
     }
 
     /**
@@ -574,10 +555,4 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
             }
         }
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + ": RequestConfig{" + "targetUri=" + targetUri + ", targetUrl=" + targetUrl + '}';
-    }
-
 }

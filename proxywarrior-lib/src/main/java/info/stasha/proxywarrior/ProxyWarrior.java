@@ -417,7 +417,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
         try {
             servletResponse.reset();
-            
+
             overrideHeaders(proxyResponse, headers, responseConfig);
 
             oldEntity = proxyResponse.getOriginalEntity();
@@ -524,14 +524,17 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 htReq = new HttpServletRequestWrapperImpl(htReq);
                 metadata.setHttpServletRequest(htReq);
                 Long cacheId = metadata.shouldUpdateDbRecord(req);
-                if(cacheId < -1){
+                if (cacheId != null && cacheId < -1) {
                     Base.exec("DELETE FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND CACHED = true", req.getId(), metadata.getPath());
                 }
                 req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 
                 getHttpClient(metadata);
-
-                super.service(htReq, response);
+                try {
+                    super.service(htReq, response);
+                } finally {
+                    req.getListeners().fire(ProxyAction.AFTER_HTTP_RESPONSE, metadata);
+                }
             } finally {
                 Base.close();
             }

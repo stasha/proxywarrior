@@ -40,6 +40,9 @@ requests:
     headers:
         common:
             ~default-header: 
+            ~Date:
+            ~default-response-header:
+                - default-response-header-value
   
     # request and response should keep default header
   - url: /keepdefaultheader

@@ -42,15 +42,6 @@ public abstract class CommonConfig<T extends CommonConfig> {
     private Cache cache;
 
     /**
-     * Returns instance information (used for debugging purposes).
-     *
-     * @return
-     */
-    public String getInstance() {
-        return super.toString();
-    }
-
-    /**
      * Returns parent configuration.
      *
      * @return
@@ -142,7 +133,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void setMethod(String method) {
         this.method = method;
-        this.setMethodPattern(Utils.getDefaultPattern(method));
+        this.setMethodPattern(Utils.getDefaultPattern(getMethod()));
     }
 
     /**
@@ -185,7 +176,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void setRequestHeader(String requestHeader) {
         this.requestHeader = requestHeader;
-        this.setRequestHeaderPattern(Utils.getDefaultPattern(this.requestHeader));
+        this.setRequestHeaderPattern(Utils.getDefaultPattern(getRequestHeader()));
     }
 
     /**
@@ -291,7 +282,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * @return
      */
     public Logging getLogging() {
-        return Utils.getValue(logging, this, getParent(), () -> getParent().getLogging(), null);
+        return Logging.getLogging(logging, getParent() != null ? getParent().getLogging() : null);
     }
 
     /**
@@ -353,7 +344,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Returns response cache configuration.
+     * Returns cache configuration.
      *
      * @return
      */
@@ -362,7 +353,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Sets response cache configuration.
+     * Sets cache configuration.
      *
      * @param cache
      */
@@ -375,11 +366,6 @@ public abstract class CommonConfig<T extends CommonConfig> {
      */
     public void dispose() {
 
-    }
-
-    @Override
-    public String toString() {
-        return "CommonsConfig{" + "url=" + url + ", method=" + method + ", header=" + requestHeader + '}';
     }
 
 }

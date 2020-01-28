@@ -1,0 +1,46 @@
+---
+id: caching-config
+
+targetUri: http://localhost:9998/proxy
+
+# global logging configuration
+logging:
+    enabled: true
+     # disables http servlet request content logging for this response
+    httpRequestContent: false
+    # disables proxy request content logging for this response
+    proxyRequestContent: false
+    # disables proxy response content logging for this response
+    proxyResponseContent: false
+    # disables http servlet response content logging for this response
+    httpResponseContent: false
+    
+requests:
+    
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    autoProxy: false
+  
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    autoProxy: false
+    
+    # completely disabled logging for request and response
+  - url: /disabledlogging
+    logging:
+        enabled: false
+  
+    # disabled content logging should be inherited from global configuration
+  - url: /disablecontentlogging  
+    
+    # enables content logging
+  - url: /enablecontentlogging
+    logging:
+        httpRequestContent: true
+        proxyRequestContent: true
+        proxyResponseContent: true
+        httpResponseContent: true
+    
+  - url: "*"

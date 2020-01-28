@@ -96,6 +96,8 @@ public class HeadersTest extends AbstractTest {
     @Request(url = "/removedefaultheader")
     public void removeDefaultHeaderTest(Response resp) {
         Assertions.assertNull(resp.getHeaderString("default-header"), "Header value should be null");
+        Assertions.assertNull(resp.getHeaderString("default-response-header"), "Header value should be null");
+        Assertions.assertNull(resp.getHeaderString("Date"), "Header value should be null");
         Assertions.assertEquals("removed default header response", resp.readEntity(String.class), "Response value should equal");
     }
 

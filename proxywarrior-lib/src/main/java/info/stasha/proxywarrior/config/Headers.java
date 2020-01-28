@@ -176,9 +176,6 @@ public class Headers {
                 // if there are no header values specified, we create one "artifical" value
                 // so logic on header names is run
                 values = values == null ? Arrays.asList(new String[]{"...."}) : values;
-                if (values.isEmpty()) {
-                    values.add("....");
-                }
 
                 for (String v : values) {
                     String value = Utils.getValue(v, config);

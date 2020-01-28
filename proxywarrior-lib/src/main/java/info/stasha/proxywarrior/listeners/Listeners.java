@@ -78,6 +78,13 @@ public class Listeners extends HashSet<String> {
                     listener.beforeHttpResponse(metadata);
                 });
                 break;
+            case AFTER_HTTP_RESPONSE:
+                LISTENERS.forEach((key, listener) -> {
+                    listener.afterHttpResponse(metadata);
+                });
+                break;
+            default:
+            // do nothing
         }
     }
 
