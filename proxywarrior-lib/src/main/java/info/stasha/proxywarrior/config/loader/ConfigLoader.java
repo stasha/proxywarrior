@@ -23,6 +23,7 @@ public class ConfigLoader extends TimerTask {
 
     private static final Logger LOGGER = Logger.getLogger(ConfigLoader.class.getName());
     public static final ObjectMapper MAPPER = MapperFactory.getMapper("yaml");
+    private static String defaultConfigPath = "/default-config.yaml";
     private static String defaultConfigString;
     private static String compareConfig;
     private static String userConfig;
@@ -30,6 +31,22 @@ public class ConfigLoader extends TimerTask {
 
     private final String propsLocation;
     private final ConfigChangeListener listener;
+
+    public static void setDefaultConfigPath(String defaultConfigPath) {
+        ConfigLoader.defaultConfigPath = defaultConfigPath;
+    }
+
+    public static void setDefaultConfigString(String config) {
+        defaultConfigString = config;
+    }
+
+    public static void setUserConfigString(String config) {
+        userConfig = config;
+    }
+
+    public static void setEffectiveConfig(RequestConfig config) {
+        effectiveConfig = config;
+    }
 
     /**
      * Creates new ConfigLoader instance.
@@ -42,6 +59,10 @@ public class ConfigLoader extends TimerTask {
         this.listener = listener;
     }
 
+    RequestConfig loadConfig(String propsLocation) {
+        return ConfigLoader.load(this.propsLocation);
+    }
+
     /**
      * Timer task that periodically checks if configuration file has changed.
      */
@@ -49,7 +70,7 @@ public class ConfigLoader extends TimerTask {
     public void run() {
         RequestConfig p = new RequestConfig();
         try {
-            RequestConfig config = ConfigLoader.load(this.propsLocation);
+            RequestConfig config = loadConfig(this.propsLocation);
             if (config != null) {
                 listener.notify(config);
             }
@@ -83,7 +104,7 @@ public class ConfigLoader extends TimerTask {
     private static String loadConfiguration(String path) {
         try {
             return FileUtils.readFileToString(new File(path), "UTF-8");
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             String msg = "Failed to load configuration from: " + path;
             LOGGER.log(Level.SEVERE, msg, ex);
             throw new ProxyWarriorException(msg, ex);
@@ -110,6 +131,10 @@ public class ConfigLoader extends TimerTask {
         return MAPPER.writeValueAsString(effectiveConfig);
     }
 
+    static String readDefaultConfigString(String path) throws IOException {
+        return FileUtils.readFileToString(new File(ConfigLoader.class.getResource(path).getPath()), "UTF-8");
+    }
+
     /**
      * Returns default-config.yaml string.
      *
@@ -118,8 +143,8 @@ public class ConfigLoader extends TimerTask {
     public static String getDefaultConfigString() {
         if (defaultConfigString == null) {
             try {
-                defaultConfigString = FileUtils.readFileToString(new File(ConfigLoader.class.getResource("/default-config.yaml").getPath()), "UTF-8");
-            } catch (IOException ex) {
+                defaultConfigString = readDefaultConfigString(defaultConfigPath);
+            } catch (Exception ex) {
                 String msg = "Failed to load default-config.yaml";
                 LOGGER.severe(msg);
                 throw new ProxyWarriorException(msg, ex);
@@ -169,7 +194,7 @@ public class ConfigLoader extends TimerTask {
             ObjectReader reader = MAPPER.readerForUpdating(getDefaultConfiguration());
 
             try {
-                effectiveConfig = reader.readValue(userConfigString);
+                setEffectiveConfig(reader.readValue(userConfigString));
                 return effectiveConfig;
             } catch (JsonParseException ex) {
                 String msg = "Failed to parse configuration\n---\n" + userConfigString;

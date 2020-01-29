@@ -23,7 +23,7 @@ public class HttpServletRequestWrapperImpl extends HttpServletRequestWrapper {
 
     private ServletInputStream inputStream;
 
-    private class ServletInputStreamImpl extends ServletInputStream {
+    public class ServletInputStreamImpl extends ServletInputStream {
 
         private InputStream is;
 
@@ -76,6 +76,5 @@ public class HttpServletRequestWrapperImpl extends HttpServletRequestWrapper {
     public BufferedReader getReader() throws IOException {
         return this.inputStream == null ? super.getReader() : new BufferedReader(new InputStreamReader(inputStream));
     }
-    
-    
+
 }
