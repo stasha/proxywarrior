@@ -3,6 +3,7 @@ package info.stasha.proxywarrior.config.loader;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import info.stasha.proxywarrior.ProxyWarriorException;
 import info.stasha.proxywarrior.config.RequestConfig;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,11 @@ public class ConfigLoaderTest {
         ConfigLoader.setDefaultConfigPath(null);
         ConfigLoader.setDefaultConfigString(null);
         ConfigLoader.setEffectiveConfig(null);
+    }
+    
+    @AfterEach
+    public void tearDown(){
+        ConfigLoader.setDefaultConfigPath("/default-config.yaml");
     }
 
     @Test
