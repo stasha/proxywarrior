@@ -11,7 +11,7 @@
         <filter-class>info.stasha.proxywarrior.ProxyWarrior</filter-class>
         <async-supported>true</async-supported>
         <init-param>
-            <param-name>PROPS_LOCATION</param-name>
+            <param-name>CONFIG_LOCATION</param-name>
             <param-value>/var/proxywarrior/config.yaml</param-value>
         </init-param>
     </filter>

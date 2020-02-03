@@ -35,6 +35,22 @@
                 <version>3.1.0</version>
                 <executions>
                     <execution>
+                        <id>copy-proxywarrior-lib-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>../proxywarrior-lib/src/main/resources</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>              
+                        </configuration>            
+                    </execution>
+                    <execution>
                         <id>copy-proxywarrior-webapp</id>
                         <phase>validate</phase>
                         <goals>

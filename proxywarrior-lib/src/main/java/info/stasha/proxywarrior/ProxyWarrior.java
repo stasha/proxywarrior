@@ -21,7 +21,9 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -56,13 +58,13 @@ import org.slf4j.LoggerFactory;
 public class ProxyWarrior extends ProxyServlet implements Filter {
 
     public static final String SYSTEM_CONFIG_LOCATION = "proxywarrior.config.location";
-    public static final String FILTER_INIT_CONFIG_LOCATION = "config_location";
+    public static final String FILTER_INIT_CONFIG_LOCATION = "CONFIG_LOCATION";
     public static final String LAST_CONFIG_USED = "LAST_CONFIG_USED";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProxyWarrior.class.getName());
     private static final ThreadLocal<Metadata> REQUEST_METADATA = new ThreadLocal<>();
 
-    private final Timer CONFIG_RELOAD_TIMER = new Timer(true);
+    private final ScheduledExecutorService CONFIG_RELOAD_TIMER = Executors.newSingleThreadScheduledExecutor();
     private String propsLocation;
     private RequestConfig config; //= new RequestConfig();
     private FilterConfig filterConfig;
@@ -90,6 +92,8 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 Base.openTransaction();
                 sup.run();
                 Base.commitTransaction();
+            } catch (Exception ex) {
+                LOGGER.error("Failed to run code in transaction" + ex);
             } finally {
                 Base.rollbackTransaction();
                 Base.close();
@@ -116,6 +120,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 this.dataSource.setJdbcUrl(proxywarriorJdbcConnection);
                 this.dataSource.setUsername("SA");
                 this.dataSource.setPassword("");
+                this.dataSource.setDriverClassName("org.hsqldb.jdbc.JDBCDriver");
             } else {
                 this.dataSource = ds;
             }
@@ -205,7 +210,15 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         propsLocation = propsLocation != null ? propsLocation : filterConfigPath;
 
         if (propsLocation != null) {
-            this.config = ConfigLoader.load(propsLocation);
+            if (propsLocation.equals(filterConfigPath)) {
+                try {
+                    this.config = ConfigLoader.load(propsLocation);
+                } catch (ProxyWarriorException ex) {
+                    LOGGER.error("Failed to load config from default filter location");
+                }
+            } else {
+                this.config = ConfigLoader.load(propsLocation);
+            }
         }
 
         if (this.config != null) {
@@ -223,7 +236,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             // loading configuration from DB
             if (ce != null) {
                 this.config = ConfigLoader.setConfiguration(ce);
-                propsLocation = (String) Base.firstCell("SELECT CONFIG FROM CONFIGURATION WHERE CONFIG_ID = ?", this.config.getId());
+                propsLocation = (String) Base.firstCell("SELECT CONFIG_PATH FROM CONFIGURATION WHERE CONFIG_ID = ?", this.config.getId());
 
                 if (propsLocation != null) {
                     LOGGER.info("Config path: {}", propsLocation);
@@ -258,7 +271,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 executeInTransaction(() -> {
                     this.saveConfigToDb(this.config, propsLocation);
                 });
-            }), 0, 1000 * 10);
+            }), 0, 5, TimeUnit.SECONDS);
         }
 
         return this.config;
@@ -544,13 +557,16 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
     @Override
     public void destroy() {
         try {
-            CONFIG_RELOAD_TIMER.cancel();
+            LOGGER.info("Shutting down configuration reload scheduler: " + CONFIG_RELOAD_TIMER.toString());
+            CONFIG_RELOAD_TIMER.shutdownNow();
         } finally {
             try {
                 if (config != null) {
                     try {
+                        LOGGER.info("Disposing config: " + config.getId());
                         config.dispose();
                     } finally {
+                        LOGGER.info("Destroying all listeners");
                         config.getListeners().destroy(this);
                     }
                 }
@@ -558,11 +574,13 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 try {
                     if (dataSource != null && !dataSource.isClosed()) {
                         try {
+                            LOGGER.info("Shutting down DB.");
                             dataSource.getConnection().prepareStatement("shutdown").execute();
                         } catch (SQLException ex) {
                             String msg = "Failed to shutdown DB";
                             LOGGER.error(msg, ex);
                         } finally {
+                            LOGGER.info("Closing DataSource");
                             dataSource.close();
                         }
                     }
