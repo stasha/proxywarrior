@@ -64,7 +64,7 @@ requests:
             ~delete-existing: 
             
     responses:
-      - file: classpath:/file.txt
+      - file: classpath:/files/get.txt
         
     # url for testing text response
   - url: /textresponse

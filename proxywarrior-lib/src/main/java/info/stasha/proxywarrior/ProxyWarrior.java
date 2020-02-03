@@ -436,8 +436,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
             oldEntity = proxyResponse.getOriginalEntity();
 
             if (oldEntity != null) {
-                String text = metadata.getResponseConfig().getText();
-                String file = metadata.getResponseConfig().getFile();
+                ResponseConfig rc = metadata.getResponseConfig();
+                String text = rc.getText();
+                String file = rc.getFile();
 
                 if (text != null) {
 
@@ -446,6 +447,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
 
                     content = new ByteArrayInputStream(text.getBytes());
                 } else if (file != null) {
+                    if (rc.getFilePattern() != null) {
+                        file = metadata.getFullUrl().replaceFirst(rc.getUrl(), rc.getFile());
+                    }
                     File f = new File(file);
 
                     if (file.startsWith("classpath:")) {

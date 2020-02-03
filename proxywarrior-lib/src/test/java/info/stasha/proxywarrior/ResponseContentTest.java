@@ -2,19 +2,18 @@ package info.stasha.proxywarrior;
 
 import info.stasha.testosterone.TestResponseBuilder.TestResponse;
 import info.stasha.testosterone.annotation.Request;
+import info.stasha.testosterone.annotation.Requests;
 import info.stasha.testosterone.servlet.ServletContainerConfig;
-import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HEAD;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.OPTIONS;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -23,144 +22,135 @@ import org.junit.jupiter.api.Test;
  * @author stasha
  */
 public class ResponseContentTest extends AbstractTest {
-    
+
+    private File file;
+
     @Override
     public void configure(ServletContainerConfig config) {
-        this.configPath = "/resp-content-config.yaml";
-        
+        this.configPath = "/response-content-config.yaml";
+
         super.configure(config);
     }
 
-    @GET
-    @Path("/proxy/fileresponse")
-    public String getFileResponse() {
-        return "response text should be text read from file thats on hd";
-    }
+    private Response getResponse(String type, String testType) {
+        file = new File("/tmp/" + type + ".txt");
+        file.deleteOnExit();
+        String content = type + " " + testType + " response";
 
-    @Test
-    @Request(url = "/fileresponse")
-    public void testFileResponse(Response resp) {
-        String addIfPresent = resp.getHeaderString("add-if-not-present");
-        String keepExisting = resp.getHeaderString("keep-existing");
-        Assertions.assertEquals("add-if-not-present-original", addIfPresent, "Header value should equal");
-        Assertions.assertEquals("keep-existing-original", keepExisting, "Header value should equal");
-        Assertions.assertNull(resp.getHeaderString("delete-existing"), "Header should be null");
-        Assertions.assertEquals("my file content", resp.readEntity(String.class), "Response text should equal");
-    }
-
-    @GET
-    @Path("/proxy/textresponse")
-    public String getTextResponse() {
-        return "response text should be text thats specified in yaml response configuration";
-    }
-
-    @Test
-    @Request(url = "/textresponse")
-    public void testTextResponse(Response resp) {
-        Assertions.assertEquals("my text from yaml", resp.readEntity(String.class), "Response text should equal");
-    }
-
-    @GET
-    @Path("/proxy/methodtextresponse")
-    public String getGetTextResponse(@QueryParam("setHeader") boolean header, @Context HttpServletResponse resp) {
-        if (header) {
-            resp.setHeader("x-get-header", "true");
+        try {
+            FileUtils.writeStringToFile(file, content, "UTF-8");
+        } catch (IOException ex) {
+            System.out.println(ex);
+            throw new RuntimeException();
         }
-        return "must return some text";
+        return Response.ok(type + " response").header("type", content).build();
     }
 
-    @Test
-    @Request(url = "/methodtextresponse")
-    public void testGetTextResponse(Response resp) {
-        Assertions.assertEquals("my get text response", resp.readEntity(String.class), "Response text should equal");
-    }
-
-    @Test
-    @Request(url = "/methodtextresponse?setHeader=true")
-    public void testGetWithHeaderTextResponse(Response resp) {
-        Assertions.assertEquals("my get text with header response", resp.readEntity(String.class), "Response text should equal");
+    @GET
+    @Path("/proxy/{type}")
+    public Response getTextTest(@PathParam("type") String type) {
+        return getResponse("get", type);
     }
 
     @POST
-    @Path("/proxy/methodtextresponse")
-    public String getPostTextResponse(String text) {
-        Assertions.assertEquals("post text", text, "Text argument should equal");
-        return "must return some text";
-    }
-
-    public static String entityText = "post text";
-
-    @Test
-    @Request(url = "/methodtextresponse", method = "POST", entity = "entityText")
-    public void testPostTextResponse(TestResponse resp) {
-        Assertions.assertEquals("my post text response", resp.getResponse().readEntity(String.class), "Response text should equal");
+    @Path("/proxy/{type}")
+    public Response postTextTest(@PathParam("type") String type) {
+        return getResponse("post", type);
     }
 
     @PUT
-    @Path("/proxy/methodtextresponse")
-    public String getPutTextResponse(String text) {
-        Assertions.assertEquals("put text", text, "Text argument should equal");
-        return "must return some text";
-    }
-
-    public static String entityText2 = "put text";
-
-    @Test
-    @Request(url = "/methodtextresponse", method = "PUT", entity = "entityText2")
-    public void testPutTextResponse(Response resp) {
-        Assertions.assertEquals("my put text response", resp.readEntity(String.class), "Response text should equal");
+    @Path("/proxy/{type}")
+    public Response putTextTest(@PathParam("type") String type) {
+        return getResponse("put", type);
     }
 
     @DELETE
-    @Path("/proxy/methodtextresponse")
-    public String getDeleteTextResponse(@HeaderParam("x-delete-request") boolean header, @Context HttpServletResponse resp) {
-        Assertions.assertTrue(header, "Header should be true");
-        resp.setHeader("x-delete-response", "true");
-        return "must return some text";
+    @Path("/proxy/{type}")
+    public Response deleteTextTest(@PathParam("type") String type) {
+        return getResponse("delete", type);
     }
 
     @Test
-    @Request(url = "/methodtextresponse", method = "DELETE", headerParams = "x-delete-request, true")
-    public void testDeleteTextResponse(Response resp) {
-        Assertions.assertNotNull(resp.getHeaderString("x-delete-response"), "Response header should not be null");
-        Assertions.assertEquals("my delete text response", resp.readEntity(String.class), "Response text should equal");
-    }
-
-    @HEAD
-    @Path("/proxy/methodtextresponse")
-    public String getHeadTextResponse() {
-        return "must return some text";
-    }
-
-    @Test
-    @Request(url = "/methodtextresponse", method = "HEAD")
-    public void testHeadTextResponse(Response resp) {
-        Assertions.assertNotNull(resp.getHeaderString("x-default-header"), "Response header should not be null");
+    @Requests(requests = {
+        @Request(url = "text", method = "GET"),
+        @Request(url = "text", method = "POST"),
+        @Request(url = "text", method = "PUT"),
+        @Request(url = "text", method = "DELETE")
+    })
+    public void textResponseTest(TestResponse resp) {
+        assertResponse(resp, "text");
     }
 
     @Test
-    @Request(url = "/methodtextresponse", method = "HEAD", headerParams = "x-multy-method, true")
-    public void testHeadOptionsTextResponse(Response resp) {
-        Assertions.assertNotNull(resp.getHeaderString("x-head-options-header"), "Response header should not be null");
-    }
-
-    @OPTIONS
-    @Path("/proxy/methodtextresponse")
-    public String getOptionsTextResponse() {
-        return "must return some text";
-    }
-
-    @Test
-    @Request(url = "/methodtextresponse", method = "OPTIONS")
-    public void testOptionsTextResponse(Response resp) {
-        Assertions.assertNotNull(resp.getHeaderString("x-default-header"), "Response header should not be null");
-        Assertions.assertEquals("my default text response", resp.readEntity(String.class), "Response text should equal");
+    @Requests(requests = {
+        @Request(url = "file", method = "GET"),
+        @Request(url = "file", method = "POST"),
+        @Request(url = "file", method = "PUT"),
+        @Request(url = "file", method = "DELETE")
+    })
+    public void fileResponseTest(TestResponse resp) {
+        assertResponse(resp, "file");
     }
 
     @Test
-    @Request(url = "/methodtextresponse", method = "OPTIONS", headerParams = "x-multy-method, true")
-    public void testOptionsHeadTextResponse(Response resp) {
-        Assertions.assertNotNull(resp.getHeaderString("x-head-options-header"), "Response header should not be null");
-        Assertions.assertEquals("my head|options text response", resp.readEntity(String.class), "Response text should equal");
+    @Requests(requests = {
+        @Request(url = "classpath", method = "GET"),
+        @Request(url = "classpath", method = "POST"),
+        @Request(url = "classpath", method = "PUT"),
+        @Request(url = "classpath", method = "DELETE")
+    })
+    public void classpathResponseTest(TestResponse resp) {
+        assertResponse(resp, "classpath");
     }
+
+    @Test
+    @Requests(requests = {
+        @Request(url = "global", method = "GET"),
+        @Request(url = "global", method = "POST"),
+        @Request(url = "global", method = "PUT"),
+        @Request(url = "global", method = "DELETE")
+    })
+    public void globalResponseTest(TestResponse resp) {
+        assertResponse(resp, "global");
+    }
+
+    @Test
+    @Requests(requests = {
+        @Request(url = "filename/get.txt", method = "GET"),
+        @Request(url = "filename/post.txt", method = "POST"),
+        @Request(url = "filename/put.txt", method = "PUT"),
+        @Request(url = "filename/delete.txt", method = "DELETE")
+    })
+    public void filenameResponseTest(TestResponse resp) {
+        assertResponse(resp, "classpath");
+    }
+
+    public void assertResponse(TestResponse resp, String testType) {
+        String responseText = resp.getResponse().readEntity(String.class);
+        String responseHeader = resp.getResponse().getHeaderString("type");
+        String type = null;
+        switch (resp.getRepeatIndex()) {
+            case 1:
+                type = "get";
+                break;
+            case 2:
+                type = "post";
+                break;
+            case 3:
+                type = "put";
+                break;
+            case 4:
+                type = "delete";
+                break;
+        }
+
+        String expected = type + " " + testType + " response";
+
+        Assertions.assertEquals(expected, responseText, "Response text should equal");
+
+        if (!resp.getRequest().url().contains("filename/")) {
+            Assertions.assertEquals(expected, responseHeader, "Header text should equal");
+        }
+    }
+
 }

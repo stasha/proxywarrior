@@ -1,0 +1,85 @@
+---
+id: response-content-config
+
+targetUri: http://localhost:9998/proxy
+
+# global response settings
+responses:
+    - method: GET
+      text: get global response
+      
+    - method: POST
+      text: post global response
+      
+    - method: PUT
+      text: put global response
+      
+    - method: DELETE
+      text: delete global response
+    
+requests:
+    
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    autoProxy: false
+  
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    autoProxy: false
+    
+    # returns specified text as response
+  - url: /text
+    responses: 
+        - method: GET
+          text: get text response
+          
+        - method: POST
+          text: post text response
+          
+        - method: PUT
+          text: put text response
+          
+        - method: DELETE
+          text: delete text response
+          
+    # returns file matched with (.*) regex
+  - url: "(.*?/filename/)(.*)"
+    responses:
+        # (.*) == $1 so returned file will be classpath:/files/get.txt, classpath:/files/post.txt ... 
+        - file: classpath:/files/$2
+          
+    # returns text specified in temp files
+  - url: /file
+    responses:
+        - method: GET
+          file: /tmp/get.txt
+          
+        - method: POST
+          file: /tmp/post.txt
+          
+        - method: PUT
+          file: /tmp/put.txt
+          
+        - method: DELETE
+          file: /tmp/delete.txt
+         
+    # returns text specified in classpath files
+  - url: /classpath 
+    responses:
+        - method: GET
+          file: classpath:/files/get.txt
+          
+        - method: POST
+          file: classpath:/files/post.txt
+          
+        - method: PUT
+          file: classpath:/files/put.txt
+          
+        - method: DELETE
+          file: classpath:/files/delete.txt
+          
+  
+          
+  - url: "*"
