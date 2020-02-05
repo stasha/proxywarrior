@@ -53,10 +53,11 @@ public abstract class CommonConfig<T extends CommonConfig> {
     /**
      * Returns parent configuration only if it matches passed class.
      *
+     * @param cls
      * @return
      */
     public T getParent(Class<T> cls) {
-        if (parent.getClass() == cls) {
+        if (cls != null && parent.getClass() == cls) {
             return (T) parent;
         }
         return null;

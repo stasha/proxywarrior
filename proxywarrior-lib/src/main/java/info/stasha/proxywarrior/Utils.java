@@ -41,6 +41,9 @@ public class Utils {
 
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("_\\[(.*?)\\]_");
 
+    private Utils() {
+    }
+
     /**
      * Returns value if it is not null.<br>
      * If value is null, searches value on parent.<br>

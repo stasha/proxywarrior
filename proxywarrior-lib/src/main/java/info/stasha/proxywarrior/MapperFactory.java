@@ -11,13 +11,13 @@ public class MapperFactory {
 
     private static ObjectMapper yamlMapper;
 
+    private MapperFactory() {
+    }
+
     public static ObjectMapper getMapper(String mapper) {
-        switch (mapper) {
-            default:
-                if (yamlMapper == null) {
-                    yamlMapper = new ObjectMapper(new YAMLFactory());
-                }
-                return yamlMapper;
+        if (yamlMapper == null) {
+            yamlMapper = new ObjectMapper(new YAMLFactory());
         }
+        return yamlMapper;
     }
 }
