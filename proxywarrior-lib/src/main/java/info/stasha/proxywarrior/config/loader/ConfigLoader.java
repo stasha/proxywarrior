@@ -48,6 +48,10 @@ public class ConfigLoader extends TimerTask {
         effectiveConfig = config;
     }
 
+    public static void setCompareConfig(String config) {
+        compareConfig = config;
+    }
+
     /**
      * Creates new ConfigLoader instance.
      *
@@ -179,11 +183,7 @@ public class ConfigLoader extends TimerTask {
 
         userConfigString = userConfigString != null ? userConfigString : getDefaultConfigString();
 
-        String compareconfig = null;
-
-        if (userConfigString != null) {
-            compareconfig = userConfigString.replaceAll("\\s*", "");
-        }
+        String compareconfig = userConfigString.replaceAll("\\s*", "");;
 
         if (compareConfig == null || !compareconfig.equals(compareConfig)) {
             compareConfig = compareconfig;
@@ -191,17 +191,12 @@ public class ConfigLoader extends TimerTask {
 
             LOGGER.log(Level.INFO, "ProxyWarrior configuration changed to:\n{0}", userConfigString);
 
-            ObjectReader reader = MAPPER.readerForUpdating(getDefaultConfiguration());
-
             try {
+                ObjectReader reader = MAPPER.readerForUpdating(getDefaultConfiguration());
                 setEffectiveConfig(reader.readValue(userConfigString));
                 return effectiveConfig;
-            } catch (JsonParseException ex) {
+            } catch (Exception ex) {
                 String msg = "Failed to parse configuration\n---\n" + userConfigString;
-                LOGGER.log(Level.SEVERE, msg, ex);
-                throw new ProxyWarriorException(msg, ex);
-            } catch (JsonProcessingException ex) {
-                String msg = "Failed to process configuration\n---\n" + userConfigString;
                 LOGGER.log(Level.SEVERE, msg, ex);
                 throw new ProxyWarriorException(msg, ex);
             }

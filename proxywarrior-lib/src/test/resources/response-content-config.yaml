@@ -9,7 +9,7 @@ responses:
       text: get global response
       
     - method: POST
-      text: post global response
+      file: classpath:/files/post-global.txt
       
     - method: PUT
       text: put global response
@@ -80,6 +80,16 @@ requests:
         - method: DELETE
           file: classpath:/files/delete.txt
           
-  
+  - url: /precedence
+    responses:
+        # file should override global text settings
+        - method: GET
+          file: classpath:/files/precedence-get.txt
+          
+        # text should override global file settings
+        - method: POST
+          text: post precedence response
+          
+        
           
   - url: "*"

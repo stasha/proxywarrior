@@ -40,7 +40,7 @@ public class ResponseConfig extends CommonConfig<ResponseConfig> {
      * @return
      */
     public String getText() {
-        return Utils.getValue(text, this, getParent(ResponseConfig.class), () -> file == null ? getParent().getText() : null, null);
+        return Utils.getValue(text, this, getParent(ResponseConfig.class), () -> getParent().getText(), null);
     }
 
     /**
@@ -59,7 +59,7 @@ public class ResponseConfig extends CommonConfig<ResponseConfig> {
      * @return
      */
     public String getFile() {
-        return Utils.getValue(file, this, getParent(ResponseConfig.class), () -> text == null ? getParent().getFile() : null, null);
+        return Utils.getValue(file, this, getParent(ResponseConfig.class), () -> getParent().getFile(), null);
     }
 
     /**

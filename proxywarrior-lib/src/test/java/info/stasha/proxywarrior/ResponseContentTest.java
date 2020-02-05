@@ -125,6 +125,15 @@ public class ResponseContentTest extends AbstractTest {
         assertResponse(resp, "classpath");
     }
 
+    @Test
+    @Requests(requests = {
+        @Request(url = "precedence", method = "GET"),
+        @Request(url = "precedence", method = "POST")
+    })
+    public void precedenceResponseTest(TestResponse resp) {
+        assertResponse(resp, "precedence");
+    }
+
     public void assertResponse(TestResponse resp, String testType) {
         String responseText = resp.getResponse().readEntity(String.class);
         String responseHeader = resp.getResponse().getHeaderString("type");

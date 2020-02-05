@@ -143,7 +143,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
      */
     public void setTargetUri(String targetUri) {
         this.targetUri = targetUri;
-        this.targetUriPattern = Utils.getDefaultPattern(targetUri);
+        this.setTargetUriPattern(Utils.getDefaultPattern(targetUri));
     }
 
     /**
@@ -183,7 +183,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
      */
     public void setTargetUrl(String targetUrl) {
         this.targetUrl = targetUrl;
-        this.targetUrlPattern = Utils.getPattern(targetUrl, "$0");
+        this.setTargetUrlPattern(Utils.getPattern(targetUrl, "$0"));
     }
 
     /**

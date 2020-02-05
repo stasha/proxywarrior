@@ -26,10 +26,11 @@ public class ConfigLoaderTest {
         ConfigLoader.setDefaultConfigPath(null);
         ConfigLoader.setDefaultConfigString(null);
         ConfigLoader.setEffectiveConfig(null);
+        ConfigLoader.setCompareConfig(null);
     }
-    
+
     @AfterEach
-    public void tearDown(){
+    public void tearDown() {
         ConfigLoader.setDefaultConfigPath("/default-config.yaml");
     }
 
@@ -59,7 +60,7 @@ public class ConfigLoaderTest {
     public void loadTest() {
         Assertions.assertNull(ConfigLoader.load(null));
     }
-    
+
     @Test
     public void getEffectiveConfigTest() throws JsonProcessingException {
         Assertions.assertNotNull(ConfigLoader.getEffectiveConfig());
@@ -82,7 +83,6 @@ public class ConfigLoaderTest {
     @Test
     public void getDefaultConfigTest() {
         Assertions.assertThrows(ProxyWarriorException.class, () -> {
-
             ConfigLoader.getDefaultConfiguration();
         }, "Loading configuration should throw exception");
     }
