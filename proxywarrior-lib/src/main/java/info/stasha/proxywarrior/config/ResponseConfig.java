@@ -16,8 +16,6 @@ public class ResponseConfig extends CommonConfig<ResponseConfig> {
     @JsonIgnore
     private Pattern filePattern;
     private String responseHeader;
-    @JsonIgnore
-    private Pattern responseHeaderPattern;
 
     /**
      * Creates new ResponseConfig instance.
@@ -121,7 +119,12 @@ public class ResponseConfig extends CommonConfig<ResponseConfig> {
      * @return
      */
     public Pattern getResponseHeaderPattern() {
-        return Utils.getValue(responseHeaderPattern, this, getParent(ResponseConfig.class), () -> getParent().getResponseHeaderPattern(), null);
+        return Utils.getValue(responseHeaderPattern, this, getParent(ResponseConfig.class), () -> {
+            if (this.urlPattern == null && this.methodPattern == null && this.requestHeaderPattern == null) {
+                return getParent().getResponseHeaderPattern();
+            }
+            return null;
+        }, null);
     }
 
     /**

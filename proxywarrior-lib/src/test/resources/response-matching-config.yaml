@@ -1,0 +1,56 @@
+---
+id: response-matching-config
+
+targetUri: http://localhost:9998/proxy
+
+# global response settings
+responses:
+    
+      # response configuration that will be activated for /urlmatching url
+    - url: /url.*?ching
+      text: global url matching
+      
+      # response configuration that will be activated when 
+      # "request-header-matching: true" header is present in request
+    - requestHeader: ".*request-header-matching:\\s*true.*"
+      text: global request header matching
+      
+    - responseHeader: ".*response-header-matching:\\s*true.*"
+      method: OPTIONS
+      text: global response header matching
+      
+      # response configuration that will be activated when request method is GET
+    - method: "GET|POST"
+      text: global get method matching
+    
+requests:
+    
+    # this is test engine url so it's not proxied 
+    # but just passed tohrough to to server
+  - url: ".*?__generic__.*"
+    autoProxy: false
+  
+    # all urls that have /proxy/ fragment are 
+    # not proxied but just passed through to server
+  - url: ".*?/proxy/.*"
+    autoProxy: false
+    
+  - url: /matching
+    responses:
+    - url: /matching/url
+      text: local url matching
+      
+      # response configuration that will be activated when 
+      # "request-header-matching: true" header is present in request
+    - requestHeader: ".*request-header-matching:\\s*true.*"
+      text: local request header matching
+      
+    - responseHeader: ".*response-header-matching:\\s*true.*"
+      method: OPTIONS
+      text: local response header matching
+      
+      # response configuration that will be activated when request method is GET
+    - method: "GET|POST"
+      text: local get method matching
+    
+  - url: "*"

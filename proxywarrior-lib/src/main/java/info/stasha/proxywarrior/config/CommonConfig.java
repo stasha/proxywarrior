@@ -15,17 +15,19 @@ import java.util.regex.Pattern;
 public abstract class CommonConfig<T extends CommonConfig> {
 
     @JsonIgnore
-    private CommonConfig parent;
+    protected CommonConfig parent;
 
     private String url;
     private String method;
     private String requestHeader;
     @JsonIgnore
-    private Pattern urlPattern;
+    protected Pattern urlPattern;
     @JsonIgnore
-    private Pattern methodPattern;
+    protected Pattern methodPattern;
     @JsonIgnore
-    private Pattern requestHeaderPattern;
+    protected Pattern requestHeaderPattern;
+    @JsonIgnore
+    protected Pattern responseHeaderPattern;
     private String removeHeaders;
     @JsonIgnore
     private Pattern removeHeadersPattern;
@@ -102,7 +104,12 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * @return
      */
     public Pattern getUrlPattern() {
-        return Utils.getValue(urlPattern, this, parent, () -> getParent().getUrlPattern(), null);
+        return Utils.getValue(urlPattern, this, parent, () -> {
+            if (this.methodPattern == null && this.requestHeaderPattern == null && this.responseHeaderPattern == null) {
+                return getParent().getUrlPattern();
+            }
+            return null;
+        }, null);
     }
 
     /**
@@ -144,7 +151,12 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * @return
      */
     public Pattern getMethodPattern() {
-        return Utils.getValue(methodPattern, this, parent, () -> getParent().getMethodPattern(), null);
+        return Utils.getValue(methodPattern, this, parent, () -> {
+            if (this.urlPattern == null && this.requestHeaderPattern == null && this.responseHeaderPattern == null) {
+                return getParent().getMethodPattern();
+            }
+            return null;
+        }, null);
     }
 
     /**
@@ -158,7 +170,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Returns request/response requestHeader matching pattern.<br>
+     * Returns request requestHeader matching pattern.<br>
      * This pattern will be used when matching requests/responses.<br>
      * Example pattern: "Content-Type: application/json" - this pattern will
      * match only requests/responses that have this requestHeader.
@@ -170,7 +182,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
     }
 
     /**
-     * Sets request/response requestHeader matching pattern.<br>
+     * Sets request requestHeader matching pattern.<br>
      *
      * @see #getRequestHeader()
      * @param requestHeader
@@ -187,7 +199,12 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * @return
      */
     public Pattern getRequestHeaderPattern() {
-        return Utils.getValue(requestHeaderPattern, this, parent, () -> getParent().getRequestHeaderPattern(), null);
+        return Utils.getValue(requestHeaderPattern, this, parent, () -> {
+            if (this.urlPattern == null && this.methodPattern == null && this.responseHeaderPattern == null) {
+                return getParent().getRequestHeaderPattern();
+            }
+            return null;
+        }, null);
     }
 
     /**
@@ -366,7 +383,7 @@ public abstract class CommonConfig<T extends CommonConfig> {
      * Disposes resources.
      */
     public void dispose() {
-        
+
     }
 
 }

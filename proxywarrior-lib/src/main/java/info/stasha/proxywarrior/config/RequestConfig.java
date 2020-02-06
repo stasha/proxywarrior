@@ -509,6 +509,10 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
             Pattern responseHeaderPattern = resp.getResponseHeaderPattern();
 
             boolean matched = matchesToPatterns(requestUrl, urlPattern, request.getMethod(), methodPattern);
+            
+            if((urlPattern != null || methodPattern != null) && !matched){
+                continue;
+            }
 
             if (requestHeaderPattern != null) {
                 matched = matchesRequestHeaderPattern(metadata, requestHeaderPattern);
