@@ -6,10 +6,10 @@ autoProxy: true
 
 logging:
   enabled: true
-  httpRequestContent: true
-  proxyRequestContent: true
-  proxyResponseContent: true
-  httpResponseContent: true
+  httpRequestContent: false
+  proxyRequestContent: false
+  proxyResponseContent: false
+  httpResponseContent: false
 
 clientConfig:
   connectTimeout: -1

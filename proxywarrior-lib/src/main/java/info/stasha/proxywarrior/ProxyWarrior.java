@@ -1,6 +1,7 @@
 package info.stasha.proxywarrior;
 
 import com.zaxxer.hikari.HikariDataSource;
+import info.stasha.proxywarrior.config.Cache;
 import info.stasha.proxywarrior.config.CommonConfig;
 import info.stasha.proxywarrior.config.Headers;
 import info.stasha.proxywarrior.config.Metadata;
@@ -14,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.sql.Blob;
@@ -24,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -174,7 +177,7 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                     Base.exec("INSERT INTO CONFIGURATION (CONFIG_ID, LAST_CONFIG_USED, CONFIG_PATH, CONFIG) VALUES (?, ?, ?, ?)",
                             config.getId(), true, path, ConfigLoader.getUserConfig());
                 } else {
-                    Base.exec("UPDATE CONFIGURATION LAST_CONFIG_USED = ?, CONFIG_PATH = ?, CONFIG = ? WHERE CONFIG_ID = ?",
+                    Base.exec("UPDATE CONFIGURATION SET LAST_CONFIG_USED = ?, CONFIG_PATH = ?, CONFIG = ? WHERE CONFIG_ID = ?",
                             true, path, ConfigLoader.getUserConfig(), config.getId());
                 }
 
@@ -268,11 +271,15 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         if (propsLocation != null) {
             CONFIG_RELOAD_TIMER.scheduleAtFixedRate(new ConfigLoader(propsLocation, (c) -> {
                 this.config = c;
+                REQUEST_METADATA.remove();
+                LOGGER.info("Config was updated: \n" + ConfigLoader.getUserConfig());
                 executeInTransaction(() -> {
                     this.saveConfigToDb(this.config, propsLocation);
                 });
             }), 0, 5, TimeUnit.SECONDS);
         }
+
+        LOGGER.info("Using config: \n" + ConfigLoader.getUserConfig());
 
         return this.config;
     }
@@ -333,10 +340,33 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
         }
     }
 
+    protected String rewritePathInfoFromRequest(HttpServletRequest servletRequest) {
+        Metadata m = REQUEST_METADATA.get();
+        String uri = m.getProxyUri();
+        String url = m.getProxyUrl();
+        try {
+            URI urlUri = new URI(url);
+            if (url.startsWith(uri)) {
+                String resolved = urlUri.resolve(uri).toString();
+                url = url.replace(resolved, "");
+            } else {
+                url = urlUri.getPath();
+            }
+            if(url.contains("?")){
+                url = url.replace("?" + urlUri.getQuery(), "");
+            }
+            return url;
+        } catch (URISyntaxException ex) {
+            throw new ProxyWarriorException("Trying to process targetUri init parameter: " + ex, ex);
+        }
+    }
+
     @Override
     protected void initTarget() throws ServletException {
-        targetUri = REQUEST_METADATA.get().getProxyUri();
+        Metadata m = REQUEST_METADATA.get();
+
         try {
+            targetUri = m.getProxyUri();
             targetUriObj = new URI(targetUri);
         } catch (Exception e) {
             throw new ServletException("Trying to process targetUri init parameter: " + e, e);
@@ -541,8 +571,9 @@ public class ProxyWarrior extends ProxyServlet implements Filter {
                 htReq = new HttpServletRequestWrapperImpl(htReq);
                 metadata.setHttpServletRequest(htReq);
                 Long cacheId = metadata.shouldUpdateDbRecord(req);
-                if (cacheId != null && cacheId < -1) {
-                    Base.exec("DELETE FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND CACHED = true", req.getId(), metadata.getPath());
+                Cache cache = req.getCache();
+                if (cacheId != null && cacheId < -1 || (!Boolean.TRUE.equals(cache.getEnabled()))) {
+                    Base.exec("DELETE FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ?", req.getId(), metadata.getPath());
                 }
                 req.getListeners().fire(ProxyAction.AFTER_HTTP_REQUEST, metadata);
 

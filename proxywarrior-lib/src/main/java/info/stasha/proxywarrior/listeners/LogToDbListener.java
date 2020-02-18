@@ -211,7 +211,7 @@ public class LogToDbListener extends LoggingListener {
             return;
         }
 
-        boolean contentLogging = Boolean.TRUE.equals(logging.getProxyResponseContent());
+        boolean contentLogging = Boolean.TRUE.equals(logging.getProxyResponseContent()) || updateRecord == -1;
         BasicHttpResponseWrapper resp = metadata.getProxyResponse();
         long[] id = new long[]{getId(metadata)};
         InputStream content = contentLogging ? Utils.getContent(resp) : null;

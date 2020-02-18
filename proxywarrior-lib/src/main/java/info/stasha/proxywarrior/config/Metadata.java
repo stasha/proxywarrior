@@ -272,14 +272,15 @@ public class Metadata {
         Cache cache = config.getCache();
         Logging logging = config.getLogging();
 
-        if (cacheResult == null) {
+        if (cacheResult == null || !Boolean.TRUE.equals(cache.getEnabled()) || cache.getExpirationTime() == 0) {
             this.setCacheResult(new CacheResult());
 
             if (Boolean.TRUE.equals(logging.getEnabled())) {
                 cacheResult.id = new Long(-1);
             }
 
-            if (cache.getExpirationTime() > 0) {
+            // -1 cache never expires, 0 no cache, 1,2,3,4... expires in seconds
+            if (cache.getEnabled() && cache.getExpirationTime() != 0) {
                 Base.find("SELECT REQUEST_ID, REQUEST_TIME, REQUEST_METHOD, REQUEST_PATH FROM REQUEST WHERE CONFIG_ID = ? AND REQUEST_PATH = ? AND REQUEST_METHOD = ?",
                         this.getRequestConfig().getId(), this.getPath(), this.getHttpServletRequest().getMethod()).with((row) -> {
                     cacheResult.id = (Long) row.get("REQUEST_ID");
@@ -301,11 +302,13 @@ public class Metadata {
                 cacheResult.id = new Long(-1);
                 return cacheResult.id;
             } else {
-                // setting request time + expiration time as future time
-                Date date = new Date(cacheResult.ts.getTime() + (cache.getExpirationTime() * 1000));
-                // in case current time is greater then future time then update cache
-                if (Calendar.getInstance().getTime().after(date)) {
-                    cacheResult.id = -cacheResult.id;
+                if (cache.getExpirationTime() > 0) {
+                    // setting request time + expiration time as future time
+                    Date date = new Date(cacheResult.ts.getTime() + (cache.getExpirationTime() * 1000));
+                    // in case current time is greater then future time then update cache
+                    if (Calendar.getInstance().getTime().after(date)) {
+                        cacheResult.id = -cacheResult.id;
+                    }
                 }
                 return cacheResult.id;
             }

@@ -9,6 +9,7 @@ cache:
     # When disabled, cached content will be updated with new one.
     enabled: true
     # Time in seconds after which cached content is replaced with new one.
+    # -1 cache never expires, 0 no cache, 1,2,3,4... expires in seconds
     expirationTime: 5
     
 requests:

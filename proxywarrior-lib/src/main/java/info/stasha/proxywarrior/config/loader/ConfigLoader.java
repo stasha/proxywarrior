@@ -1,6 +1,5 @@
 package info.stasha.proxywarrior.config.loader;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -192,6 +191,7 @@ public class ConfigLoader extends TimerTask {
             LOGGER.log(Level.INFO, "ProxyWarrior configuration changed to:\n{0}", userConfigString);
 
             try {
+                RequestConfig.PROXY_WARRIOR_REQUEST_CONFIG = null;
                 ObjectReader reader = MAPPER.readerForUpdating(getDefaultConfiguration());
                 setEffectiveConfig(reader.readValue(userConfigString));
                 return effectiveConfig;

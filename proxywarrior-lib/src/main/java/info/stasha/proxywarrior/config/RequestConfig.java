@@ -30,7 +30,7 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
     public static final String REQUEST_METADATA = "proxywarriormetadata";
     public static final String TARGET_URI_REGEX = ".*:\\/\\/.*?[\\w.:-]*";
 
-    private static RequestConfig PROXY_WARRIOR_REQUEST_CONFIG;
+    public static RequestConfig PROXY_WARRIOR_REQUEST_CONFIG;
 
     private List<RequestConfig> requests = new ArrayList<>();
     private List<ResponseConfig> responses = new ArrayList<>();
@@ -509,8 +509,8 @@ public class RequestConfig extends CommonConfig<RequestConfig> {
             Pattern responseHeaderPattern = resp.getResponseHeaderPattern();
 
             boolean matched = matchesToPatterns(requestUrl, urlPattern, request.getMethod(), methodPattern);
-            
-            if((urlPattern != null || methodPattern != null) && !matched){
+
+            if ((urlPattern != null || methodPattern != null) && !matched) {
                 continue;
             }
 

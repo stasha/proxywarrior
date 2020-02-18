@@ -88,7 +88,7 @@ public class LogToConsoleListener extends LoggingListener {
         lo.setMethod(metadata.getHttpServletRequest().getMethod());
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getHttpServletRequest()))));
 
-        if (logging.getHttpRequestContent()) {
+        if (Boolean.TRUE.equals(logging.getHttpRequestContent())) {
             lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT REQUEST_CONTENT FROM REQUEST WHERE REQUEST_ID = ?", id))));
         }
 
@@ -111,7 +111,7 @@ public class LogToConsoleListener extends LoggingListener {
         LogObject lo = getLogObject("PROXY REQUEST", id);
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyRequest()))));
 
-        if (logging.getProxyRequestContent()) {
+        if (Boolean.TRUE.equals(logging.getProxyRequestContent())) {
             lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_REQUEST_CONTENT FROM PROXY_REQUEST WHERE REQUEST_ID = ?", id))));
         }
 
@@ -130,7 +130,7 @@ public class LogToConsoleListener extends LoggingListener {
         lo.setStatus(metadata.getProxyResponse().getStatusLine().toString());
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse()))));
 
-        if (logging.getProxyResponseContent()) {
+        if (Boolean.TRUE.equals(logging.getProxyResponseContent())) {
             lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT PROXY_RESPONSE_CONTENT FROM PROXY_RESPONSE WHERE REQUEST_ID = ?", id))));
         }
 
@@ -148,7 +148,7 @@ public class LogToConsoleListener extends LoggingListener {
         LogObject lo = getLogObject("RESPONSE", id);
         lo.setHeaders(getHeaders(() -> MAPPER.writeValueAsString(Utils.getHeaders(metadata.getProxyResponse()))));
 
-        if (logging.getHttpResponseContent()) {
+        if (Boolean.TRUE.equals(logging.getHttpResponseContent())) {
             lo.setContentStream(getInputStream(() -> ((Blob) Base.firstCell("SELECT RESPONSE_CONTENT FROM RESPONSE WHERE REQUEST_ID = ?", id))));
         }
 
