@@ -23,7 +23,7 @@
         <smiley-http-proxy-servlet.version>1.11</smiley-http-proxy-servlet.version>
         <javax.servlet-api.version>4.0.0</javax.servlet-api.version>
         <commons-io.version>2.5</commons-io.version>
-        <httpclient.version>4.5.5</httpclient.version>
+        <httpclient.version>4.5.13</httpclient.version>
         <jackson.version>2.10.1</jackson.version>
         <jstl.version>1.2</jstl.version>
         
